@@ -719,11 +719,6 @@ export default function NoteWorkbenchPage() {
               size="large"
               block
               style={{
-                background: stats.ready > 0
-                  ? 'linear-gradient(135deg, var(--primary-500), var(--primary-600))'
-                  : undefined,
-                border: 'none',
-                boxShadow: stats.ready > 0 ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none',
                 marginTop: 4,
               }}
             >

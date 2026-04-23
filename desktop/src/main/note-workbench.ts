@@ -117,7 +117,12 @@ function extractNoteId(url: string) {
 function buildNoteFolderName(note: Record<string, unknown>, url: string) {
   const noteId = String(note.noteId ?? note.note_id ?? extractNoteId(url) ?? 'note')
   const title = String(note.title ?? note.nickname ?? 'note')
-  return `${sanitizeFileName(title)}_${sanitizeFileName(noteId)}`
+  const nickname = String(note.nickname ?? note.userNickname ?? note.user_name ?? note.userName ?? '')
+  const parts = [nickname, title, noteId]
+    .map((part) => sanitizeFileName(part))
+    .filter((part) => part !== '')
+
+  return (parts.join('_') || 'note').slice(0, 120)
 }
 
 function buildTextContent(note: Record<string, unknown>, url: string) {
@@ -335,7 +340,7 @@ export async function downloadPreviewNotes(
           return
         }
         const ext = url.includes('.png') ? 'png' : url.includes('.webp') ? 'webp' : 'jpg'
-        const mediaPath = join(downloadDir, 'media', `image_${index + 1}.${ext}`)
+        const mediaPath = join(downloadDir, `image_${index + 1}.${ext}`)
         jobs.push({
           label: `${noteTitle} / 图片 ${index + 1}`,
           filePath: mediaPath,
@@ -352,7 +357,7 @@ export async function downloadPreviewNotes(
     if (itemOptions.downloadVideo && isVideoNote(note)) {
       const videoUrl = resolveVideoDownloadUrl(note, item.videoStreamUrl)
       if (videoUrl) {
-        const videoPath = join(downloadDir, 'media', 'video.mp4')
+        const videoPath = join(downloadDir, 'video.mp4')
         jobs.push({
           label: `${noteTitle} / 视频`,
           filePath: videoPath,
@@ -367,7 +372,7 @@ export async function downloadPreviewNotes(
       if (String(note.videoCover ?? '')) {
         const coverUrl = String(note.videoCover ?? '')
         const ext = coverUrl.includes('.png') ? 'png' : coverUrl.includes('.webp') ? 'webp' : 'jpg'
-        const coverPath = join(downloadDir, 'media', `cover.${ext}`)
+        const coverPath = join(downloadDir, `cover.${ext}`)
         jobs.push({
           label: `${noteTitle} / 封面`,
           filePath: coverPath,

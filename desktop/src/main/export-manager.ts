@@ -38,6 +38,17 @@ function sanitizeFileName(name: string) {
   return name.replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, '_').slice(0, 80) || 'task'
 }
 
+function buildNoteFolderName(note: Record<string, unknown>, fallback: string) {
+  const noteId = String(note.noteId ?? note.note_id ?? fallback ?? 'note')
+  const title = String(note.title ?? note.nickname ?? 'note')
+  const nickname = String(note.nickname ?? note.userNickname ?? note.user_name ?? note.userName ?? '')
+  const parts = [nickname, title, noteId]
+    .map((part) => sanitizeFileName(part))
+    .filter((part) => part !== '')
+
+  return (parts.join('_') || 'note').slice(0, 120)
+}
+
 function ensureDir(path: string) {
   mkdirSync(path, { recursive: true })
 }
@@ -213,14 +224,14 @@ async function exportNormalizedData(
     markCompleted()
     emit({ jobId, phase: 'running', total, completed: completed(), percent: total === 0 ? 100 : Math.round((completed() / total) * 100), currentFile: '', currentUrl: '', currentTitle: '', message: '导出 notes.json', exportRoot, downloadRoot, currentDownloadedBytes: 0, currentTotalBytes: null, currentPercent: null })
     for (const note of normalized.noteList as Record<string, unknown>[]) {
-      const noteDir = join(parsedDir, 'notes', sanitizeFileName(String(note.noteId ?? note.title ?? 'note')))
+      const noteDir = join(parsedDir, 'notes', buildNoteFolderName(note, String(note.noteId ?? note.title ?? 'note')))
       ensureDir(noteDir)
       writeFileSync(join(noteDir, 'detail.json'), JSON.stringify(note, null, 2), 'utf-8')
       markCompleted()
       emit({ jobId, phase: 'running', total, completed: completed(), percent: total === 0 ? 100 : Math.round((completed() / total) * 100), currentFile: '', currentUrl: '', currentTitle: '', message: '导出 detail.json', exportRoot, downloadRoot, currentDownloadedBytes: 0, currentTotalBytes: null, currentPercent: null })
       const noteTitle = String(note.title ?? note.nickname ?? 'note')
       const noteUrl = String(note.noteUrl ?? '')
-      await exportNoteMedia(note, join(noteDir, 'media'), videoStreamUrl, (currentFile, currentUrl, currentTitle, message, fileProgress) => {
+      await exportNoteMedia(note, noteDir, videoStreamUrl, (currentFile, currentUrl, currentTitle, message, fileProgress) => {
         const current = fileProgress ?? { downloadedBytes: 0, totalBytes: null, percent: null }
         emit({
           jobId,
@@ -290,7 +301,7 @@ export async function exportTaskRun(task: TaskRun, settings: AppSettings, option
   const taskDir = join(rootDir, taskDirName)
   const rawDir = join(taskDir, 'raw')
   const parsedDir = join(taskDir, 'parsed')
-  const mediaDir = join(downloadRoot, taskDirName, 'media')
+  const mediaDir = join(downloadRoot, taskDirName)
 
   ensureDir(rawDir)
   ensureDir(parsedDir)
