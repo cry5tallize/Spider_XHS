@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Checkbox, Select, Tag, TextArea, Toast } from '@douyinfe/semi-ui'
+import { Button, Checkbox, Progress, Select, Tag, TextArea, Toast } from '@douyinfe/semi-ui'
 import {
   IconClear,
   IconDownload,
@@ -66,6 +66,23 @@ function getVideoStreamOptions(note?: StandardNote | null) {
 
   const fallbackUrl = note?.videoAddr ?? ''
   return fallbackUrl ? [{ label: '默认流', value: fallbackUrl }] : []
+}
+
+function formatBytes(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '-'
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`
+  return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
+function getProgressPercent(downloadedBytes: number, totalBytes: number | null, fallbackPercent: number | null) {
+  console.log(downloadedBytes, totalBytes, fallbackPercent)
+  if (totalBytes && totalBytes > 0) {
+    return Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100))
+  }
+
+  return fallbackPercent ?? 0
 }
 
 function getNoteTitle(item: PreviewItem) {
@@ -770,30 +787,49 @@ export default function NoteWorkbenchPage() {
               </div>
 
               <div style={{ width: '100%' }}>
-                <div style={{
-                  width: '100%',
-                  height: 8,
-                  background: 'var(--gray-200)',
-                  borderRadius: 9999,
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${downloadState.percent}%`,
-                    borderRadius: 9999,
-                    background: downloadState.phase === 'finished'
-                      ? 'linear-gradient(90deg, var(--success-500), var(--success-600))'
-                      : downloadState.phase === 'error'
-                        ? 'linear-gradient(90deg, var(--error-500), var(--error-600))'
-                        : 'linear-gradient(90deg, var(--primary-500), var(--primary-400))',
-                    transition: 'width 0.5s ease',
-                  }} />
-                </div>
+                <Progress percent={downloadState.percent} showInfo={false} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12, color: 'var(--color-text-tertiary)' }}>
                   <span>进度 {downloadState.completed}/{downloadState.total}</span>
                   <span style={{ fontWeight: 600, color: getDownloadPhaseColor() }}>{downloadState.percent}%</span>
                 </div>
               </div>
+
+              {downloadState.currentPercent !== null && (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-xs)',
+                }}>
+                  {(() => {
+                    const currentFilePercent = getProgressPercent(
+                      downloadState.currentDownloadedBytes,
+                      downloadState.currentTotalBytes,
+                      downloadState.currentPercent,
+                    )
+
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            当前文件进度
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>
+                            {formatBytes(downloadState.currentDownloadedBytes)}
+                            {downloadState.currentTotalBytes ? ` / ${formatBytes(downloadState.currentTotalBytes)}` : ''}
+                          </div>
+                        </div>
+                        <Progress percent={currentFilePercent} showInfo={false} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                          <span>当前文件</span>
+                          <span style={{ fontWeight: 600, color: 'var(--warning-600)' }}>{currentFilePercent.toFixed(0)}%</span>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--color-text-tertiary)' }}>
                 {downloadState.currentTitle && (

@@ -154,7 +154,13 @@ type FileProgress = {
   percent: number | null
 }
 
-async function downloadToFile(url: string, filePath: string, onProgress?: (progress: FileProgress) => void) {
+type VideoStreamInfo = {
+  masterUrl: string
+  backupUrls: string[]
+  size: number
+}
+
+async function downloadToFile(url: string, filePath: string, onProgress?: (progress: FileProgress) => void, expectedTotalBytes?: number | null) {
   const response = await fetch(url)
   if (!response.ok || !response.body) {
     throw new Error(`下载失败: ${response.status}`)
@@ -165,7 +171,11 @@ async function downloadToFile(url: string, filePath: string, onProgress?: (progr
   const reader = response.body.getReader()
   const totalHeader = response.headers.get('content-length')
   const totalBytes = totalHeader ? Number(totalHeader) : NaN
-  const knownTotalBytes = Number.isFinite(totalBytes) && totalBytes > 0 ? totalBytes : null
+  const expectedBytes = Number.isFinite(expectedTotalBytes ?? NaN) && (expectedTotalBytes ?? 0) > 0 ? expectedTotalBytes ?? null : null
+  const headerBytes = Number.isFinite(totalBytes) && totalBytes > 0 ? totalBytes : null
+  const knownTotalBytes = expectedBytes && headerBytes
+    ? Math.max(expectedBytes, headerBytes)
+    : expectedBytes ?? headerBytes
   let downloadedBytes = 0
 
   while (true) {
@@ -209,6 +219,30 @@ function resolveVideoDownloadUrl(note: Record<string, unknown>, selectedUrl?: st
   const streams = Array.isArray(note.videoStreams) ? note.videoStreams : []
   const first = streams[0] && typeof streams[0] === 'object' ? streams[0] as Record<string, unknown> : null
   return String(first?.masterUrl ?? '')
+}
+
+function resolveVideoStreamInfo(note: Record<string, unknown>, selectedUrl?: string) {
+  const streams = Array.isArray(note.videoStreams) ? note.videoStreams : []
+  const chosenUrl = selectedUrl?.trim()
+
+  const match = streams.find((stream) => {
+    if (!stream || typeof stream !== 'object') {
+      return false
+    }
+
+    const record = stream as Record<string, unknown>
+    const masterUrl = String(record.masterUrl ?? '')
+    const backupUrls = Array.isArray(record.backupUrls) ? record.backupUrls.map((url) => String(url ?? '')).filter(Boolean) : []
+    return chosenUrl ? masterUrl === chosenUrl || backupUrls.includes(chosenUrl) : Boolean(masterUrl)
+  }) as Record<string, unknown> | undefined
+
+  const fallback = match ?? (streams[0] && typeof streams[0] === 'object' ? streams[0] as Record<string, unknown> : undefined)
+
+  return {
+    masterUrl: String(fallback?.masterUrl ?? ''),
+    backupUrls: Array.isArray(fallback?.backupUrls) ? (fallback?.backupUrls as unknown[]).map((url) => String(url ?? '')).filter(Boolean) : [],
+    size: Number(fallback?.size ?? 0),
+  } satisfies VideoStreamInfo
 }
 
 async function mapLimit<T>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<void>) {
@@ -358,6 +392,7 @@ export async function downloadPreviewNotes(
       const videoUrl = resolveVideoDownloadUrl(note, item.videoStreamUrl)
       if (videoUrl) {
         const videoPath = join(downloadDir, 'video.mp4')
+        const videoInfo = resolveVideoStreamInfo(note, item.videoStreamUrl)
         jobs.push({
           label: `${noteTitle} / 视频`,
           filePath: videoPath,
@@ -366,7 +401,7 @@ export async function downloadPreviewNotes(
           run: async () => downloadToFile(videoUrl, videoPath, (progress) => {
             jobProgress.set(videoPath, progress)
             emit('running', videoPath, item.url, noteTitle, '下载视频', progress)
-          }),
+          }, videoInfo.size),
         })
       }
       if (String(note.videoCover ?? '')) {

@@ -59,6 +59,14 @@ function formatStepValue(value: unknown) {
   return String(value)
 }
 
+function formatBytes(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '-'
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`
+  return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
 function getPrimaryTaskAction(task: DesktopTaskRun) {
   if (task.status === 'running') return { label: '取消任务', kind: 'cancel' as const }
   if (task.status === 'failed' || task.status === 'cancelled') return { label: '重试任务', kind: 'retry' as const }
@@ -742,6 +750,11 @@ export default function TasksPage() {
                   {exportProgress.currentPercent !== null
                     ? `单文件进度: ${exportProgress.currentPercent}%`
                     : '单文件进度: 未知'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+                  {exportProgress.currentPercent !== null
+                    ? `单文件字节: ${formatBytes(exportProgress.currentDownloadedBytes)} / ${formatBytes(exportProgress.currentTotalBytes)}`
+                    : '单文件字节: 未知'}
                 </div>
               </div>
             )}
