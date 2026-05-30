@@ -22,6 +22,10 @@ import {
   removeTemplate,
   removeTask,
   upsertTemplate,
+  searchTasks,
+  batchRemoveTasks,
+  batchExportTasks,
+  getTaskStats,
 } from './task-manager'
 import { downloadPreviewNotes, previewNoteUrls } from './note-workbench'
 
@@ -267,6 +271,16 @@ function registerIpcHandlers() {
   ipcMain.handle('task:reparse', (_event, payload) => reparseTask(payload?.taskId ?? '', xhsPcApi))
   ipcMain.handle('task:cancel', (_event, payload) => cancelTask(payload?.taskId ?? ''))
   ipcMain.handle('task:remove', (_event, payload) => removeTask(payload?.taskId ?? ''))
+  ipcMain.handle('task:search', (_event, query: string) => searchTasks(query ?? ''))
+  ipcMain.handle('task:batch-remove', (_event, ids: string[]) => batchRemoveTasks(ids ?? []))
+  ipcMain.handle('task:batch-export', (_event, payload) =>
+    batchExportTasks(
+      Array.isArray(payload?.taskIds) ? payload.taskIds : [],
+      loadSettings(),
+      (progress) => (event.sender.send as (channel: string, ...args: unknown[]) => void)('task:batch-export-progress', progress),
+    )
+  )
+  ipcMain.handle('task:stats', () => getTaskStats())
   ipcMain.handle('task:export', (event, payload) => exportTask(
     payload?.taskId ?? '',
     loadSettings(),

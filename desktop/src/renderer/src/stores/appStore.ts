@@ -6,6 +6,17 @@ type AccountForm = Partial<DesktopAccountSettings> & { id: string }
 type PathsForm = { defaultDownloadDir: string; defaultExportDir: string }
 export type ThemePreference = 'system' | 'light' | 'dark'
 
+export interface AppNotification {
+  id: string
+  taskId: string
+  taskName: string
+  status: 'success' | 'failed'
+  timestamp: string
+}
+
+type TaskSortField = 'createdAt' | 'updatedAt' | 'name' | 'status'
+type TaskSortDir = 'asc' | 'desc'
+
 const THEME_STORAGE_KEY = 'spider-xhs-theme-preference'
 
 function readThemePreference(): ThemePreference {
@@ -69,6 +80,30 @@ interface AppStore {
   // Task filter
   taskFilter: 'all' | 'video' | 'normal'
   setTaskFilter: (filter: 'all' | 'video' | 'normal') => void
+
+  // Sidebar
+  sidebarCollapsed: boolean
+  toggleSidebar: () => void
+
+  // Notifications
+  notifications: AppNotification[]
+  addNotification: (notification: AppNotification) => void
+  clearNotifications: () => void
+
+  // Task search
+  taskSearchQuery: string
+  setTaskSearchQuery: (query: string) => void
+
+  // Task sort
+  taskSortField: TaskSortField
+  taskSortDir: TaskSortDir
+  setTaskSort: (field: TaskSortField, dir: TaskSortDir) => void
+
+  // Task multi-select
+  selectedTaskIds: string[]
+  toggleTaskSelection: (taskId: string) => void
+  selectAllTasks: (taskIds: string[]) => void
+  clearTaskSelection: () => void
 
   // Refresh data
   refreshAll: () => Promise<void>
@@ -171,6 +206,34 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Task filter
   taskFilter: 'all',
   setTaskFilter: (filter) => set({ taskFilter: filter }),
+
+  // Sidebar
+  sidebarCollapsed: false,
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+
+  // Notifications
+  notifications: [],
+  addNotification: (notification) => set((s) => ({ notifications: [notification, ...s.notifications].slice(0, 30) })),
+  clearNotifications: () => set({ notifications: [] }),
+
+  // Task search
+  taskSearchQuery: '',
+  setTaskSearchQuery: (query) => set({ taskSearchQuery: query }),
+
+  // Task sort
+  taskSortField: 'createdAt' as TaskSortField,
+  taskSortDir: 'desc' as TaskSortDir,
+  setTaskSort: (field, dir) => set({ taskSortField: field, taskSortDir: dir }),
+
+  // Task multi-select
+  selectedTaskIds: [],
+  toggleTaskSelection: (taskId) => set((s) => ({
+    selectedTaskIds: s.selectedTaskIds.includes(taskId)
+      ? s.selectedTaskIds.filter((id) => id !== taskId)
+      : [...s.selectedTaskIds, taskId],
+  })),
+  selectAllTasks: (taskIds) => set({ selectedTaskIds: taskIds }),
+  clearTaskSelection: () => set({ selectedTaskIds: [] }),
 
   // Refresh data
   refreshAll: async () => {

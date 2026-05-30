@@ -29,3 +29,30 @@ ENV/
 env.bak/
 venv.bak/
 
+# Electron desktop build outputs
+desktop/out/
+desktop/release/
+
+# IDE
+.idea/
+.trae/
+*.swp
+*.swo
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python output
+datas/
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+*.egg
+

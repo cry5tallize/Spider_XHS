@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Toast } from '@douyinfe/semi-ui'
 import { AppLayout } from './components/layout/AppLayout'
 import { useAppStore } from './stores/appStore'
+import { useKeyboardShortcuts } from './hooks'
 import DashboardPage from './pages/Dashboard'
 import NewTaskPage from './pages/NewTask'
 import NoteWorkbenchPage from './pages/NoteWorkbench'
@@ -10,7 +11,12 @@ import SettingsPage from './pages/Settings'
 import './styles/global.css'
 
 export default function App() {
-  const { activePage, setActivePage, setLoading, refreshAll, setAccountForm, themePreference } = useAppStore()
+  const { activePage, setActivePage, setLoading, refreshAll, setAccountForm, themePreference, setSelectedTaskId } = useAppStore()
+
+  useKeyboardShortcuts({
+    setActivePage,
+    closeDrawer: () => setSelectedTaskId(null),
+  })
 
   useEffect(() => {
     let mounted = true

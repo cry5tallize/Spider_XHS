@@ -206,6 +206,18 @@ contextBridge.exposeInMainWorld('desktopAPI', {
     remove(payload: { taskId: string }) {
       return ipcRenderer.invoke('task:remove', payload)
     },
+    search(query: string) {
+      return ipcRenderer.invoke('task:search', query)
+    },
+    batchRemove(ids: string[]) {
+      return ipcRenderer.invoke('task:batch-remove', ids)
+    },
+    batchExport(taskIds: string[]) {
+      return ipcRenderer.invoke('task:batch-export', { taskIds })
+    },
+    getStats() {
+      return ipcRenderer.invoke('task:stats')
+    },
     export(payload: { taskId: string; videoStreamUrl?: string }) {
       return ipcRenderer.invoke('task:export', payload)
     },

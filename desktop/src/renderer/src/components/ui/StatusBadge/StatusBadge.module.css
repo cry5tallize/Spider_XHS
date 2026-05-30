@@ -1,0 +1,50 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.success {
+  background: var(--success-100);
+  color: var(--success-700);
+}
+
+.processing {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.error {
+  background: var(--error-100);
+  color: var(--error-700);
+}
+
+.warning {
+  background: var(--warning-100);
+  color: var(--warning-600);
+}
+
+.pending {
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.cancelled {
+  background: var(--gray-100);
+  color: var(--gray-500);
+}
+
+/* dot variant — compact indicator with dot + text */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

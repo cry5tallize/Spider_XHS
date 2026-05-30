@@ -1,0 +1,82 @@
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: var(--space-4) 0;
+  user-select: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: default;
+}
+
+.dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.pending .dot {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border: 2px solid var(--gray-300);
+}
+
+.current .dot {
+  background: var(--primary-500);
+  color: #fff;
+  border: 2px solid var(--primary-500);
+  box-shadow: 0 0 0 4px var(--primary-100);
+}
+
+.completed .dot {
+  background: var(--success-500);
+  color: #fff;
+  border: 2px solid var(--success-500);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-normal);
+}
+
+.pending .label {
+  color: var(--gray-500);
+}
+
+.current .label {
+  color: var(--primary-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.completed .label {
+  color: var(--success-700);
+}
+
+.connector {
+  width: 48px;
+  height: 2px;
+  margin: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-normal);
+}
+
+.connectorPending {
+  background: var(--gray-200);
+}
+
+.connectorCompleted {
+  background: var(--success-400);
+}

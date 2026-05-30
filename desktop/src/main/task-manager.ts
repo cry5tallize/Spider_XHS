@@ -651,6 +651,59 @@ export async function exportTask(
   return exportTaskRun(task, settings, options, onProgress as ((progress: never) => void) | undefined)
 }
 
+export function searchTasks(query: string) {
+  const q = query.toLowerCase().trim()
+  if (!q) return listTasks()
+  return loadTaskState().tasks.filter((task) =>
+    task.name.toLowerCase().includes(q) ||
+    task.action.toLowerCase().includes(q)
+  ).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
+export function batchRemoveTasks(taskIds: string[]) {
+  const state = loadTaskState()
+  state.tasks = state.tasks.filter((task) => !taskIds.includes(task.id))
+  saveTaskState(state)
+  return state.tasks
+}
+
+export async function batchExportTasks(
+  taskIds: string[],
+  settings: AppSettings,
+  onProgress?: (progress: unknown) => void,
+) {
+  const results: Array<{ taskId: string; success: boolean; exportPath?: string; error?: string }> = []
+  for (const taskId of taskIds) {
+    try {
+      const result = await exportTask(taskId, settings, {}, onProgress as ((progress: never) => void) | undefined)
+      results.push({ taskId, success: true, exportPath: (result as Record<string, unknown> | null)?.exportPath as string | undefined })
+    } catch (error) {
+      results.push({ taskId, success: false, error: error instanceof Error ? error.message : '导出失败' })
+    }
+  }
+  return results
+}
+
+export function getTaskStats() {
+  const tasks = loadTaskState().tasks
+  const total = tasks.length
+  const running = tasks.filter((t) => t.status === 'running').length
+  const success = tasks.filter((t) => t.status === 'success').length
+  const failed = tasks.filter((t) => t.status === 'failed').length
+  const cancelled = tasks.filter((t) => t.status === 'cancelled').length
+  const pending = tasks.filter((t) => t.status === 'pending').length
+
+  const byAction: Record<string, number> = {}
+  for (const task of tasks) {
+    byAction[task.action] = (byAction[task.action] || 0) + 1
+  }
+
+  const now = new Date()
+  const today = tasks.filter((t) => new Date(t.createdAt).toDateString() === now.toDateString()).length
+
+  return { total, running, success, failed, cancelled, pending, byAction, today }
+}
+
 function toString(value: unknown) {
   return value === null || value === undefined ? '' : String(value)
 }

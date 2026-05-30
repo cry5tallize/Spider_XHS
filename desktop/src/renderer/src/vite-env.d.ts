@@ -372,6 +372,10 @@ declare global {
         reparse: (payload: { taskId: string }) => Promise<DesktopTaskRun | null>
         cancel: (payload: { taskId: string }) => Promise<DesktopTaskRun | null>
         remove: (payload: { taskId: string }) => Promise<DesktopTaskRun[]>
+        search: (query: string) => Promise<DesktopTaskRun[]>
+        batchRemove: (ids: string[]) => Promise<DesktopTaskRun[]>
+        batchExport: (taskIds: string[]) => Promise<Array<{ taskId: string; success: boolean; exportPath?: string; error?: string }>>
+        getStats: () => Promise<{ total: number; running: number; success: number; failed: number; cancelled: number; pending: number; byAction: Record<string, number>; today: number }>
         export: (payload: { taskId: string; videoStreamUrl?: string }) => Promise<{ success: boolean; msg: string; exportPath: string } | null>
         onExportProgress: (handler: (progress: DesktopDownloadProgress) => void) => () => void
         previewNotes: (payload: { urls: string[]; cookiesStr?: string }) => Promise<DesktopNotePreview[]>

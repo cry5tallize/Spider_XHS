@@ -1,9 +1,12 @@
-import { Tag } from '@douyinfe/semi-ui'
+import type { ReactNode } from 'react'
 import type { PageKey } from '../../types'
+import type { AppNotification } from '../../stores/appStore'
+import { NotificationPanel } from './NotificationPanel'
+import styles from './Header.module.css'
 
 const pageInfo: Record<PageKey, { title: string; subtitle: string }> = {
   dashboard: { title: '首页', subtitle: '快速开始你的采集工作流' },
-  newTask: { title: '新建任务', subtitle: '在这里创建可复用的任务' },
+  newTask: { title: '新建任务', subtitle: '创建可复用的采集任务' },
   noteWorkbench: { title: '笔记批量解析', subtitle: '粘贴链接，预览后再下载' },
   tasks: { title: '任务管理', subtitle: '查看和管理所有采集任务' },
   settings: { title: '设置', subtitle: '管理账号和系统偏好' },
@@ -13,54 +16,48 @@ interface HeaderProps {
   activePage: PageKey
   accountCount: number
   taskCount: number
+  notifications: AppNotification[]
+  onClearNotifications: () => void
+  onNavigateToTask: (page: PageKey, taskId: string) => void
+  extra?: ReactNode
 }
 
-export function Header({ activePage, accountCount, taskCount }: HeaderProps) {
+export function Header({
+  activePage,
+  accountCount,
+  taskCount,
+  notifications,
+  onClearNotifications,
+  onNavigateToTask,
+  extra,
+}: HeaderProps) {
   const { title, subtitle } = pageInfo[activePage]
 
   return (
-    <div
-      style={{
-        height: 60,
-        padding: '0 24px',
-        background: 'var(--color-surface)',
-        borderBottom: '1px solid var(--color-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}
-    >
-      <div>
-        <h2
-          style={{
-            margin: 0,
-            fontSize: 18,
-            fontWeight: 600,
-            color: 'var(--color-text-primary)',
-            lineHeight: 1.3,
-          }}
-        >
-          {title}
-        </h2>
-        <span
-          style={{
-            fontSize: 13,
-            color: 'var(--color-text-tertiary)',
-            lineHeight: 1.4,
-          }}
-        >
-          {subtitle}
-        </span>
+    <div className={styles.root}>
+      <div className={styles.info}>
+        <h2 className={styles.title}>{title}</h2>
+        <span className={styles.subtitle}>{subtitle}</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <Tag color="blue" size="small" style={{ borderRadius: 9999, padding: '4px 12px' }}>
-          {accountCount} 个账号
-        </Tag>
-        <Tag color="green" size="small" style={{ borderRadius: 9999, padding: '4px 12px' }}>
-          {taskCount} 个任务
-        </Tag>
+      <div className={styles.actions}>
+        <div className={styles.tags}>
+          <span className={`${styles.tag} ${styles.tagAccounts}`}>
+            {accountCount} 个账号
+          </span>
+          <span className={`${styles.tag} ${styles.tagTasks}`}>
+            {taskCount} 个任务
+          </span>
+          <span className={styles.shortcutHint}>Ctrl+N 新建</span>
+        </div>
+
+        <NotificationPanel
+          notifications={notifications}
+          onClear={onClearNotifications}
+          onNavigate={onNavigateToTask}
+        />
+
+        {extra}
       </div>
     </div>
   )
