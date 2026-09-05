@@ -50,3 +50,30 @@ _live_session.json
 /source/
 
 creator_cookie.json
+# Electron desktop build outputs
+desktop/out/
+desktop/release/
+
+# IDE
+.idea/
+.trae/
+*.swp
+*.swo
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python output
+datas/
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+*.egg
+

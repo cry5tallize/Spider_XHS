@@ -1,0 +1,75 @@
+{
+  "name": "XhsSpiderDesktop",
+  "author": {
+    "name": "crystallize"
+  },
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./out/main/index.js",
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "package:dir": "pnpm build && electron-builder --dir",
+    "package": "pnpm build && electron-builder",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@douyinfe/semi-icons": "^2.95.0",
+    "@douyinfe/semi-ui": "^2.95.0",
+    "crypto-js": "^4.2.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "electron": "^41.2.1",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "terser": "^5.46.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.8"
+  },
+  "build": {
+    "appId": "com.spiderxhs.desktop",
+    "productName": "Spider XHS Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "compression": "maximum",
+    "files": [
+      "out/**",
+      "package.json",
+      "src/static/xhs_main_260411.js",
+      "src/static/xhs_xray.js",
+      "src/static/xhs_xray_pack1.js",
+      "src/static/xhs_xray_pack2.js",
+      "!src/static/xhs_creator_*.js",
+      "!src/main/**",
+      "!src/preload/**",
+      "!src/renderer/**",
+      "!**/.vite/**",
+      "!**/*.map",
+      "!**/*.tgz"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "portable",
+        "zip"
+      ]
+    }
+  }
+}

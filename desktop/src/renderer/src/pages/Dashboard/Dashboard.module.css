@@ -1,0 +1,102 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1200px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: var(--space-4);
+}
+
+.recentPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.quickCards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.quickCard {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-3);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quickCard:hover {
+  border-color: var(--primary-300);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.quickCardTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.quickCardDesc {
+  margin-top: 3px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.accountWidget {
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.accountHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.accountName {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.accountRemark {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.seeAllLink {
+  border: 0;
+  background: transparent;
+  color: var(--primary-600);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+}
+
+.seeAllLink:hover {
+  color: var(--primary-700);
+  text-decoration: underline;
+}

@@ -1,0 +1,225 @@
+.sider {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) 0;
+  transition: width var(--transition-normal), min-width var(--transition-normal);
+  overflow: hidden;
+}
+
+.collapsed {
+  width: 68px;
+  min-width: 68px;
+}
+
+.brand {
+  padding: 0 var(--space-4) var(--space-4);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brandCollapsed {
+  justify-content: center;
+  padding: 0 0 var(--space-4);
+}
+
+.brandLogo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brandInfo {
+  min-width: 0;
+}
+
+.brandName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.brandTagline {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.nav {
+  padding: 0 var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-height: 0;
+}
+
+.navCollapsed {
+  padding: 0 var(--space-2);
+}
+
+.navItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.navItem:hover {
+  background: var(--gray-50);
+  border-color: var(--color-border);
+}
+
+.navItemActive {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+}
+
+.navItemCollapsed {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.navIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.navIconInactive {
+  background: var(--gray-100);
+  color: var(--color-text-tertiary);
+}
+
+.navIconActive {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.navLabel {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.navLabelActive {
+  font-weight: var(--font-weight-semibold);
+}
+
+.navBadge {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--error-500);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.navBadgeCollapsed {
+  right: -6px;
+  top: 0;
+  transform: none;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+
+.footer {
+  padding: var(--space-3) var(--space-4) 0;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.footerCollapsed {
+  padding: var(--space-3) var(--space-2) 0;
+}
+
+.footerCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--gray-50);
+  border: 1px solid var(--color-border);
+}
+
+.footerCardCollapsed {
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.footerInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.footerLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.footerName {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footerHint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-2);
+}
+
+.collapseToggle {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.collapseToggle:hover {
+  background: var(--gray-50);
+  color: var(--color-text-secondary);
+}
