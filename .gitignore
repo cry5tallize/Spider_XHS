@@ -2,6 +2,7 @@ __pycache__
 node_modules/
 /.env
 /desktop/.env
+/desktop/.task/
 /desktop/test-output/
 /desktop/out/
 /desktop/release/
@@ -55,4 +56,3 @@ _live_session.json
 /_scratch/
 
 creator_cookie.json
-desktop/.task/
