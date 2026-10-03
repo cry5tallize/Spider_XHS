@@ -1,6 +1,6 @@
 # 实施路线与进度台账
 
-更新时间：2026-10-04。当前阶段：P1 工程基础已实现，进入 P2 业务闭环。历史 xhs/Pretty 能力属于已有基础，不计为新应用需求已完成。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
+更新时间：2026-10-04。当前阶段：P1 已提交，P2a 多账号配置已实现；接下来 P2b 笔记解析、P2c 下载与历史。P2 按这些可独立交付的子阶段命名提交。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
 
 ## 进度维护规则
 
@@ -39,8 +39,8 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | LIFE-01 | P1→P4 | P1 Start/Close、单实例、失败回滚、根取消联动/命令等待已实现；后续加入 lease/worker/恢复 | ENG-01、DB-01 | DOING |
 | FE-01 | P1 | 工程化目录、createHashRouter route.lazy、providers/shell/错误边界；产物确实拆页 | ENG-03 | DONE |
 | FE-02 | P1→P5 | P1 Ant tokens、三主题、首帧镜像/监听清理通过；业务页面/原生视觉在后续复验 | FE-01 | DOING |
-| ACC-01 | P2 | Account repository/手动 Cookie CRUD/默认/启用；DPAPI；列表与日志无原文 | DB-02、LIFE-01 | TODO |
-| ACC-02 | P2 | 独立 client/lease、GetMe 校验、凭据更新轮换；旧 client 引用归零关闭 | ACC-01 | TODO |
+| ACC-01 | P2a | 账号 CRUD/默认/启用；Windows DPAPI；普通 DTO 无 Cookie；软删除清凭据 | DB-02、LIFE-01 | DONE |
+| ACC-02 | P2a→P2b | 手动 GetMe 校验/超时/请求结束关闭、版本守卫已实现；复用 client/lease 与更新取消在 P2b 接入 | ACC-01 | DOING |
 | ACC-03 | P3 | 固定/来源分配/受控轮询、账号冷却、禁用取消；每次切换可追踪 | ACC-02 | TODO |
 | PAR-01 | P2 | 详情适配与快照、全部候选/Partial warnings、单条 StartParse/GetResult | ACC-02、DB-02 | TODO |
 | PAR-02 | P3 | 文本输入提取/短链展开/批量幂等/有界队列/部分失败/失败重试 | PAR-01 | TODO |
@@ -97,6 +97,8 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | 2026-10-03 | PLAN-01 | 核对 Wails beta.27 模板、xhsapi 详情/分页/媒体类型、API 内存式传输；查询 Ant Design MCP changelog/ConfigProvider/Table；建立本文档组和需求/阶段映射。相对链接、UTF-8 与代码块成对检查通过；仅新增 docs，无依赖安装、业务代码变更或 XHS 网络请求 | 纳入本次 P0 计划提交 |
 | 2026-10-03 | PLAN-01 修订 | 用户明确下载任务与历史按单笔记管理、笔记内多个项串行、并发为同时执行的笔记数。同步架构、schema、接口、UI、调度/恢复与验收；P0 计划阶段提交标题：`docs(desktop): plan note-based download tasks and history` | 本次计划阶段提交，hash 在后续记录引用 |
 | 2026-10-04 | P1 / ENG-01～03、DB-01、FE-01，LIFE-01/FE-02 基础 | 薄 Wails 入口、统一 Runtime、SQLite 单写/读池、集中 SQL/迁移/备份/设置 CAS、系统/明暗主题、懒加载工作空间/设置、原生目录选择及 desktopcheck。`go test ./...`、`go vet ./...`、前端 6 测试/typecheck/lint/build、`wails3 build` 均通过；真实 npm runtime 通过本地 Wails 服务读到重启前设置并正常 Quit。100 次 Runtime 关闭、取消联动与失败回滚已覆盖。原生工具连接及浏览器环境不可用，未验证原生视觉/窗口交互；不将其标为通过。未请求小红书 | P1 命名提交：`feat(desktop): establish application foundation` |
+| 2026-10-04 | P1 提交 | 工程基础已独立提交，工作区清理；不修改现有 xhs/xhsapi 算法与 CLI 常量 | `42c73d7` |
+| 2026-10-04 | P2a / ACC-01、ACC-02 校验子范围 | 迁移 0002/accounts 集中查询；Windows DPAPI + 每账号 entropy；添加/改名/换 Cookie/默认/禁用/软删除清凭据；手动 GetMe（20s context/现有15s传输）、版本守卫拒绝旧响应、普通 DTO 无原文；账号懒加载页面接实际绑定。存储/DPAPI/Runtime/CLI 相关测试及前端 typecheck/lint/build 通过，无真实 XHS 请求。会话复用及账号级取消尚未完成，ACC-02 保持 DOING | P2a 命名提交：`feat(desktop): manage encrypted account cookies` |
 
 ## 设计变更日志
 

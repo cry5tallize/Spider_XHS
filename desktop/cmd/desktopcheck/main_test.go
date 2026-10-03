@@ -40,7 +40,7 @@ func capture(t *testing.T, args ...string) (bool, dto.Bootstrap) {
 
 func TestDisposableDatabaseIsRemovedAfterClose(t *testing.T) {
 	ephemeral, boot := capture(t, "db")
-	if !ephemeral || boot.SchemaVersion != 1 {
+	if !ephemeral || boot.SchemaVersion < 1 {
 		t.Fatalf("unexpected output: %+v", boot)
 	}
 	if _, err := os.Stat(boot.DataDirectory); !os.IsNotExist(err) {

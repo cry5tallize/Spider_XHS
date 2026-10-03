@@ -144,12 +144,13 @@ func TestMigrationBackupRollbackAndChecksum(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bad := append(append([]migration{}, base...), migration{2, "0002_bad.sql", "bad", "CREATE TABLE temporary_marker (id INTEGER); INSERT INTO missing_table VALUES (1);"})
+	nextVersion := len(base) + 1
+	bad := append(append([]migration{}, base...), migration{nextVersion, "next_bad.sql", "bad", "CREATE TABLE temporary_marker (id INTEGER); INSERT INTO missing_table VALUES (1);"})
 	if _, err = migrate(ctx, s.writer, s.path, bad); err == nil {
 		t.Fatal("invalid migration succeeded")
 	}
 	var count int
-	if err = s.writer.QueryRowContext(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil || count != 1 {
+	if err = s.writer.QueryRowContext(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil || count != len(base) {
 		t.Fatalf("migration history count=%d: %v", count, err)
 	}
 	if err = s.writer.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master WHERE name='temporary_marker'").Scan(&count); err != nil || count != 0 {
@@ -172,8 +173,8 @@ func TestMigrationBackupRollbackAndChecksum(t *testing.T) {
 	if _, err = migrate(ctx, s.writer, s.path, changed); err == nil || !strings.Contains(err.Error(), "checksum") {
 		t.Fatalf("checksum: %v", err)
 	}
-	good := append(append([]migration{}, base...), migration{2, "0002_good.sql", "good", "CREATE TABLE upgrade_marker (id INTEGER);"})
-	if version, err := migrate(ctx, s.writer, s.path, good); err != nil || version != 2 {
+	good := append(append([]migration{}, base...), migration{nextVersion, "next_good.sql", "good", "CREATE TABLE upgrade_marker (id INTEGER);"})
+	if version, err := migrate(ctx, s.writer, s.path, good); err != nil || version != nextVersion {
 		t.Fatalf("upgrade version=%d: %v", version, err)
 	}
 	if _, err = migrate(ctx, s.writer, s.path, base); err == nil || !strings.Contains(err.Error(), "newer") {

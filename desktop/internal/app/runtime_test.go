@@ -27,7 +27,7 @@ func TestRuntimeRepeatedStartCloseAndPersistedSettings(t *testing.T) {
 			t.Fatal("repeated start:", err)
 		}
 		boot, err := r.Bootstrap(context.Background())
-		if err != nil || boot.Settings.MaxConcurrentNotes != 4 || boot.SchemaVersion != 1 {
+		if err != nil || boot.Settings.MaxConcurrentNotes != 4 || boot.SchemaVersion < 1 {
 			t.Fatalf("bootstrap: %+v, %v", boot, err)
 		}
 		if err = r.Close(); err != nil {

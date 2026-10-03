@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	xhsadapter "github.com/cry5tallize/xhs_spider_desktop/internal/adapters/xhs"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/bridge/dto"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/accounts"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/settings"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/secrets"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/storage"
 	"sync"
 	"time"
@@ -27,6 +30,7 @@ type Runtime struct {
 	state     dto.RuntimeState
 	store     *storage.Store
 	settings  *settings.Service
+	accounts  *accounts.Service
 	cancel    context.CancelFunc
 	ctx       context.Context
 	closeErr  error
@@ -67,6 +71,7 @@ func (r *Runtime) Start(parent context.Context) error {
 		r.state = dto.StateFailed
 		return errors.Join(fmt.Errorf("initialize settings: %w", err), store.Close())
 	}
+	r.accounts = accounts.NewService(store, secrets.New(), xhsadapter.AccountProbe{})
 	r.store, r.settings, r.state = store, service, dto.StateReady
 	return nil
 }
@@ -86,7 +91,7 @@ func (r *Runtime) Close() error {
 			r.closeErr = r.store.Close()
 		}
 		r.mu.Lock()
-		r.settings, r.state = nil, dto.StateClosed
+		r.settings, r.accounts, r.state = nil, nil, dto.StateClosed
 		r.mu.Unlock()
 	})
 	return r.closeErr
@@ -111,6 +116,15 @@ func (r *Runtime) GetGeneral(caller context.Context) (settings.General, error) {
 	}
 	defer done()
 	return r.settings.Get(ctx)
+}
+
+func (r *Runtime) WithAccounts(caller context.Context, call func(context.Context, *accounts.Service) error) error {
+	ctx, done, err := r.beginCommand(caller)
+	if err != nil {
+		return err
+	}
+	defer done()
+	return call(ctx, r.accounts)
 }
 
 func (r *Runtime) UpdateGeneral(caller context.Context, input settings.UpdateGeneral) (settings.General, error) {

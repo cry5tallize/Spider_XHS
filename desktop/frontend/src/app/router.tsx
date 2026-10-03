@@ -8,5 +8,6 @@ export const router = createHashRouter([{
   children: [
     { index: true, lazy: () => import('./welcome/route') },
     { path: 'settings', lazy: () => import('@/features/settings/route') },
+    { path: 'accounts', lazy: () => import('@/features/accounts/route') },
   ],
 }]);
