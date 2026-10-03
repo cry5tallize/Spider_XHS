@@ -1,0 +1,61 @@
+name: Build Desktop (Windows)
+
+on:
+  push:
+    branches: [main, desktop]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/build-desktop.yml'
+  pull_request:
+    branches: [main, desktop]
+    paths:
+      - 'desktop/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Electron App
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build & package
+        run: pnpm package
+        env:
+          NODE_ENV: production
+
+      - name: Upload portable exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spider-XHS-Desktop-Portable
+          path: desktop/release/*.exe
+          if-no-files-found: warn
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spider-XHS-Desktop-Zip
+          path: desktop/release/*.zip
+          if-no-files-found: warn
