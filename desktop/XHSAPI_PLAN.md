@@ -4,11 +4,11 @@
 
 ## 包与职责
 
-目标目录 `desktop/xhsapi/`，包路径 `github.com/cry5tallize/xhs_spider_desktop/xhsapi`。
+目标目录 `desktop/internal/xhsapi/`，包路径 `github.com/cry5tallize/xhs_spider_desktop/internal/xhsapi`。
 
 - `Client` 直接提供 PC 方法，接收用户 Cookie，管理同一账户的 Session 和 HTTP 传输。
 - 覆盖账户、用户、笔记、搜索、评论、通知及配置接口。
-- 复用 `internal/xhs` 的签名、Cookie、DS、RAP 和传输；公开 API 不要求调用者导入 internal 包。
+- 复用 `internal/xhs` 的签名、Cookie、DS、RAP 和传输；调用方依赖 `internal/xhsapi` 提供的类型与方法。
 
 按需拆分 `client.go`、`user.go`、`note.go`、`search.go`、`comment.go`、`notification.go`、`config.go`、`media.go`、`types.go`、`errors.go`。
 

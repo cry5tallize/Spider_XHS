@@ -62,19 +62,6 @@ type Response struct {
 	Duration     time.Duration
 }
 
-// NoteDetail retains the feed response separately from derived playback URLs.
-type NoteDetail struct {
-	Response *Response
-	Videos   []VideoPlayback
-}
-type VideoPlayback struct {
-	NoteID string    `json:"note_id"`
-	URL    string    `json:"url"`
-	Source string    `json:"source"`
-	Error  string    `json:"error,omitempty"`
-	Page   *Response `json:"-"`
-}
-
 func (r *Response) DecodeData(value any) error {
 	if r == nil {
 		return fmt.Errorf("response is nil")

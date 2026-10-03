@@ -69,7 +69,7 @@ func NewChromeTransport(options TransportOptions) (*ChromeTransport, error) {
 	if limit <= 0 {
 		limit = 32 << 20
 	}
-	opts := []tlsclient.HttpClientOption{tlsclient.WithClientProfile(profiles.Chrome_146), tlsclient.WithRandomTLSExtensionOrder(), tlsclient.WithDisableHttp3(), tlsclient.WithNotFollowRedirects(), tlsclient.WithTimeoutMilliseconds(int(timeout.Milliseconds())), tlsclient.WithTransportOptions(&tlsclient.TransportOptions{DisableCompression: true, RootCAs: options.RootCAs})}
+	opts := []tlsclient.HttpClientOption{tlsclient.WithClientProfile(profiles.Chrome_152_PSK), tlsclient.WithRandomTLSExtensionOrder(), tlsclient.WithDisableHttp3(), tlsclient.WithNotFollowRedirects(), tlsclient.WithTimeoutMilliseconds(int(timeout.Milliseconds())), tlsclient.WithTransportOptions(&tlsclient.TransportOptions{DisableCompression: true, RootCAs: options.RootCAs})}
 	if options.ProxyURL != "" {
 		opts = append(opts, tlsclient.WithProxyUrl(options.ProxyURL))
 	}

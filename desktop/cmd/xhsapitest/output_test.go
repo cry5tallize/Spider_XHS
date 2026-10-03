@@ -73,26 +73,3 @@ func TestRecorderSavesNonJSONErrorBody(t *testing.T) {
 		t.Fatal("non-JSON error body lost")
 	}
 }
-
-func TestRecorderSavesDerivedVideoSeparately(t *testing.T) {
-	r, err := newRecorder(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	r.setCase("note")
-	video := xhsapi.VideoPlayback{NoteID: "aaaaaaaaaaaaaaaaaaaaaaaa", URL: "https://cdn.test/video.mp4", Source: "og:video", Page: &xhsapi.Response{Raw: []byte("private raw page")}}
-	if err = r.captureVideo(video); err != nil {
-		t.Fatal(err)
-	}
-	files, err := os.ReadDir(r.directory)
-	if err != nil || len(files) != 1 {
-		t.Fatal("missing derived JSON", err)
-	}
-	data, err := os.ReadFile(filepath.Join(r.directory, files[0].Name()))
-	if err != nil || !json.Valid(data) || bytes.Contains(data, []byte("private raw page")) || !bytes.Contains(data, []byte("https://cdn.test/video.mp4")) {
-		t.Fatal("incorrect derived JSON", err)
-	}
-	if r.rawResponses != 0 {
-		t.Fatal("derived video counted as a raw HTTP response")
-	}
-}

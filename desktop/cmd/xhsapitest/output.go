@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +18,6 @@ var unsafeFilename = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
 type recorder struct {
 	directory, caseName string
 	sequence            int
-	rawResponses        int
 	mu                  sync.Mutex
 }
 
@@ -33,7 +33,6 @@ func (r *recorder) capture(response *xhsapi.Response) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.sequence++
-	r.rawResponses++
 	base := fmt.Sprintf("%04d_%s_%s", r.sequence, unsafeFilename.ReplaceAllString(r.caseName, "_"), unsafeFilename.ReplaceAllString(response.Path, "_"))
 	valid := json.Valid(response.Raw)
 	suffix := ".json"
@@ -55,17 +54,16 @@ func (r *recorder) capture(response *xhsapi.Response) error {
 	if e != nil {
 		return e
 	}
-	return os.WriteFile(filepath.Join(r.directory, base+".meta.json"), append(data, '\n'), 0600)
-}
-
-func (r *recorder) captureVideo(video xhsapi.VideoPlayback) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.sequence++
-	filename := fmt.Sprintf("%04d_%s_%s.video.json", r.sequence, unsafeFilename.ReplaceAllString(r.caseName, "_"), unsafeFilename.ReplaceAllString(video.NoteID, "_"))
-	data, err := json.MarshalIndent(video, "", "  ")
-	if err != nil {
-		return err
+	if e := os.WriteFile(filepath.Join(r.directory, base+".meta.json"), append(data, '\n'), 0600); e != nil {
+		return e
 	}
-	return os.WriteFile(filepath.Join(r.directory, filename), append(data, '\n'), 0600)
+	// Pretty output is a cmd concern. GetNote and the API response stay raw.
+	if response.Path == "/api/sns/web/v1/feed" && response.StatusCode >= 200 && response.StatusCode < 300 {
+		var payload map[string]json.RawMessage
+		if json.Unmarshal(response.Data, &payload) == nil && payload["items"] != nil {
+			notes, parseError := response.DecodeNotes()
+			return errors.Join(parseError, writePrettyNotes(filepath.Join(r.directory, base+".notes.pretty.json"), notes))
+		}
+	}
+	return nil
 }

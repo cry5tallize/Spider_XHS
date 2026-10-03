@@ -2,7 +2,6 @@ package xhsapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -68,48 +67,6 @@ func (c *Client) GetNote(ctx context.Context, noteURL string) (*Response, error)
 	return c.GetNoteByID(ctx, ref)
 }
 
-// GetNoteDetail adds the public page playback URL for video notes without
-// modifying the raw feed payload or changing GetNote's single-request contract.
-func (c *Client) GetNoteDetail(ctx context.Context, noteURL string) (*NoteDetail, error) {
-	ref, parseErr := ParseNoteURL(noteURL)
-	if parseErr != nil {
-		return nil, parseErr
-	}
-	response, err := c.GetNote(ctx, noteURL)
-	detail := &NoteDetail{Response: response}
-	if err != nil {
-		return detail, err
-	}
-	var data struct {
-		Items []struct {
-			ID   string `json:"id"`
-			Card struct {
-				ID   string `json:"note_id"`
-				Type string `json:"type"`
-			} `json:"note_card"`
-		} `json:"items"`
-	}
-	if err = response.DecodeData(&data); err != nil {
-		return detail, err
-	}
-	var failures []error
-	for _, item := range data.Items {
-		if item.Card.Type != "video" {
-			continue
-		}
-		// Access tokens belong to the original link's note ID, not another
-		// item that a server response may happen to include.
-		id := ref.ID
-		address, page, videoErr := c.GetVideoURL(ctx, noteURL)
-		video := VideoPlayback{NoteID: id, URL: address, Source: "og:video", Page: page}
-		if videoErr != nil {
-			video.Error = videoErr.Error()
-			failures = append(failures, fmt.Errorf("video %s: %w", id, videoErr))
-		}
-		detail.Videos = append(detail.Videos, video)
-	}
-	return detail, errors.Join(failures...)
-}
 func (c *Client) GetNoteByID(ctx context.Context, ref NoteRef) (*Response, error) {
 	if e := required(ref.ID, "note ID"); e != nil {
 		return nil, e

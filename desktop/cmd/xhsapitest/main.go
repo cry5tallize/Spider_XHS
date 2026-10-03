@@ -21,7 +21,6 @@ type testApp struct {
 	userURL, query, category, cursor string
 	limit, pages                     int
 	imageURL                         string
-	saveVideo                        func(xhsapi.VideoPlayback) error
 }
 
 var errSkipped = errors.New("skipped")
@@ -177,18 +176,7 @@ func (a *testApp) registry() map[string]func(context.Context) error {
 				var e error
 				switch kind {
 				case "note":
-					detail, noteErr := a.client.GetNoteDetail(ctx, input)
-					e = noteErr
-					if detail != nil {
-						for _, video := range detail.Videos {
-							if a.saveVideo != nil {
-								e = errors.Join(e, a.saveVideo(video))
-							}
-							if video.URL != "" {
-								fmt.Printf("  video %s: %s\n", video.NoteID, video.URL)
-							}
-						}
-					}
+					_, e = a.client.GetNote(ctx, input)
 				case "comments":
 					_, e = a.client.GetComments(ctx, ref, a.cursor)
 				case "all-comments":
@@ -226,8 +214,12 @@ func run() error {
 	pages := flag.Int("pages", 3, "maximum collected pages")
 	timeout := flag.Duration("timeout", 45*time.Second, "timeout per selected test")
 	image := flag.String("image-url", "", "image URL to normalize")
+	noteFile := flag.String("note-file", "", "parse a local note item array or feed response without Cookie or requests")
 	list := flag.Bool("list", false, "list test names without loading Cookie")
 	flag.Parse()
+	if *noteFile != "" {
+		return runOfflineNotes(*noteFile, *output)
+	}
 	app := &testApp{userURL: *user, query: *query, category: *category, cursor: *cursor, limit: *limit, pages: *pages, imageURL: *image}
 	registry := app.registry()
 	names := []string{}
@@ -282,7 +274,6 @@ func run() error {
 	}
 	defer client.Close()
 	app.client = client
-	app.saveVideo = recorder.captureVideo
 	registry = app.registry()
 	for _, input := range testNoteURLs {
 		if strings.TrimSpace(input) != "" {
@@ -311,7 +302,7 @@ func run() error {
 			fmt.Printf("%s: OK\n", name)
 		}
 	}
-	fmt.Printf("saved %d raw responses; failed tests: %d; skipped: %d\n", recorder.rawResponses, failed, skipped)
+	fmt.Printf("saved %d raw responses; failed tests: %d; skipped: %d\n", recorder.sequence, failed, skipped)
 	if failed > 0 {
 		return fmt.Errorf("%d selected tests failed; inspect saved responses", failed)
 	}
