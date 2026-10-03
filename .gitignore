@@ -1,6 +1,8 @@
 __pycache__
 node_modules/
 /.env
+/desktop/.env
+/desktop/test-output/
 /datas/
 *.so
 .Python

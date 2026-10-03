@@ -1,0 +1,205 @@
+{
+  "source": "apis/xhs_pc_apis.py",
+  "methods": {
+    "bootstrap": {
+      "go": "Bootstrap",
+      "status": "implemented"
+    },
+    "get_homefeed_all_channel": {
+      "go": "GetHomefeedChannels",
+      "status": "implemented"
+    },
+    "get_homefeed_recommend": {
+      "go": "GetHomefeed",
+      "status": "implemented"
+    },
+    "get_homefeed_recommend_by_num": {
+      "go": "CollectHomefeed",
+      "status": "implemented"
+    },
+    "get_user_info": {
+      "go": "GetUserInfo",
+      "status": "implemented"
+    },
+    "get_user_me": {
+      "go": "GetMe",
+      "status": "implemented"
+    },
+    "get_user_note_info": {
+      "go": "GetUserNotes",
+      "status": "implemented"
+    },
+    "get_user_all_notes": {
+      "go": "CollectUserNotes",
+      "status": "implemented"
+    },
+    "get_user_like_note_info": {
+      "go": "GetUserLikedNotes",
+      "status": "implemented"
+    },
+    "get_user_all_like_note_info": {
+      "go": "CollectUserLikedNotes",
+      "status": "implemented"
+    },
+    "get_user_collect_note_info": {
+      "go": "GetUserCollectedNotes",
+      "status": "implemented"
+    },
+    "get_user_all_collect_note_info": {
+      "go": "CollectUserCollectedNotes",
+      "status": "implemented"
+    },
+    "get_note_info": {
+      "go": "GetNote",
+      "status": "implemented"
+    },
+    "share_code": {
+      "go": "ShareCode",
+      "status": "implemented"
+    },
+    "get_widgets": {
+      "go": "GetWidgets",
+      "status": "implemented"
+    },
+    "worldcup_note_seo": {
+      "go": "WorldcupNoteSEO",
+      "status": "implemented"
+    },
+    "report_note_metrics": {
+      "go": "ReportNoteMetrics",
+      "status": "implemented"
+    },
+    "report_history_web": {
+      "go": "ReportHistory",
+      "status": "implemented"
+    },
+    "get_search_keyword": {
+      "go": "GetSearchKeywords",
+      "status": "implemented"
+    },
+    "get_web_config": {
+      "go": "GetWebConfig",
+      "status": "implemented"
+    },
+    "get_system_config": {
+      "go": "GetSystemConfig",
+      "status": "implemented"
+    },
+    "get_trending_queries": {
+      "go": "GetTrendingQueries",
+      "status": "implemented"
+    },
+    "get_celestial_lt": {
+      "status": "deferred",
+      "reason": "Live/IM/RWP excluded by user"
+    },
+    "get_user_board": {
+      "go": "GetUserBoards",
+      "status": "implemented"
+    },
+    "get_dqa_recommend": {
+      "go": "GetDQARecommend",
+      "status": "implemented"
+    },
+    "get_global_config": {
+      "go": "GetGlobalConfig",
+      "status": "implemented"
+    },
+    "get_worldcup_display_period": {
+      "go": "GetWorldcupDisplayPeriod",
+      "status": "implemented"
+    },
+    "get_worldcup_live_bar": {
+      "status": "deferred",
+      "reason": "Live/IM/RWP excluded by user"
+    },
+    "sync_search_history": {
+      "go": "SyncSearchHistory",
+      "status": "implemented"
+    },
+    "sync_search_history_captured": {
+      "go": "SyncSearchHistoryCaptured",
+      "status": "implemented"
+    },
+    "search_onebox": {
+      "go": "SearchOnebox",
+      "status": "implemented"
+    },
+    "search_filter": {
+      "go": "GetSearchFilters",
+      "status": "implemented"
+    },
+    "search_note": {
+      "go": "SearchNotes",
+      "status": "implemented"
+    },
+    "search_some_note": {
+      "go": "CollectSearchNotes",
+      "status": "implemented"
+    },
+    "search_user": {
+      "go": "SearchUsers",
+      "status": "implemented"
+    },
+    "search_some_user": {
+      "go": "CollectSearchUsers",
+      "status": "implemented"
+    },
+    "get_note_out_comment": {
+      "go": "GetComments",
+      "status": "implemented"
+    },
+    "get_note_all_out_comment": {
+      "go": "CollectComments",
+      "status": "implemented"
+    },
+    "get_note_inner_comment": {
+      "go": "GetSubComments",
+      "status": "implemented"
+    },
+    "get_note_all_inner_comment": {
+      "go": "CollectSubComments",
+      "status": "implemented"
+    },
+    "get_note_all_comment": {
+      "go": "GetAllComments",
+      "status": "implemented"
+    },
+    "get_unread_message": {
+      "go": "GetUnread",
+      "status": "implemented"
+    },
+    "get_metions": {
+      "go": "GetMentions",
+      "status": "implemented"
+    },
+    "get_all_metions": {
+      "go": "CollectMentions",
+      "status": "implemented"
+    },
+    "get_likesAndcollects": {
+      "go": "GetLikesAndCollections",
+      "status": "implemented"
+    },
+    "get_all_likesAndcollects": {
+      "go": "CollectLikesAndCollections",
+      "status": "implemented"
+    },
+    "get_new_connections": {
+      "go": "GetNewConnections",
+      "status": "implemented"
+    },
+    "get_all_new_connections": {
+      "go": "CollectNewConnections",
+      "status": "implemented"
+    },
+    "get_note_no_water_video": {
+      "go": "GetVideoURL",
+      "status": "implemented"
+    },
+    "get_note_no_water_img": {
+      "go": "ImageURL",
+      "status": "implemented"
+    }
+  }
+}
