@@ -1,6 +1,6 @@
 # 实施路线与进度台账
 
-更新时间：2026-10-03。当前阶段：P0 完成计划；P1 尚未开始。历史 xhs/Pretty 能力属于已有基础，不计为新应用需求已完成。
+更新时间：2026-10-04。当前阶段：P1 工程基础已实现，进入 P2 业务闭环。历史 xhs/Pretty 能力属于已有基础，不计为新应用需求已完成。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
 
 ## 进度维护规则
 
@@ -17,7 +17,7 @@
 | 阶段 | 目标 | 可运行交付与出口 |
 | --- | --- | --- |
 | P0 | 调研与计划 | 当前 docs 全部建立，基线、边界、验收和追踪明确 |
-| P1 | 工程与生命周期基础 | 干净检出能编译运行；SQLite 迁移/配置可用；主题/懒加载 shell；启动失败/退出可正确释放 |
+| P1 | 工程与生命周期基础 | 当前环境 Windows 构建、SQLite 迁移/设置、主题/懒加载 shell、启动失败/命令取消/资源关闭验证通过；干净检出与原生交互在 QA-02 复验 |
 | P2 | 单条端到端闭环 | UI 保存/验证 Cookie → 详情候选 → 默认计划 → 单连接下载 → 实时进度 → 历史 → 重启查询 |
 | P3 | 批量与完整媒体配置 | 多账号调度、用户逐页解析、失败重试；全部/自定义视频图片、LivePhoto 配对、模板与完整配置 |
 | P4 | 下载可靠性与智能历史 | 有界笔记并发/笔记内串行、公平/限速、Range/分段、备用/刷新、笔记暂停恢复、默认安全覆盖、按项补缺和故障恢复 |
@@ -30,15 +30,15 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | ID | 阶段 | 内容与明确验收 | 依赖 | 状态 |
 | --- | --- | --- | --- | --- |
 | PLAN-01 | P0 | 核对代码、建立 docs、链接/需求覆盖/状态一致性检查 | — | DONE |
-| ENG-01 | P1 | app/bridge/modules 基础；删除演示循环/Greet；现有 xhs CLI 保持可用 | PLAN-01 | TODO |
-| ENG-02 | P1 | 修正 build 配置忽略、应用元信息与构建任务；干净检出可构建 | ENG-01 | TODO |
-| ENG-03 | P1 | 核对并锁定 Wails/runtime/最新 AntD/Router/React 依赖；统一 pnpm/TS 脚本和生成契约 | ENG-01 | TODO |
-| DB-01 | P1 | modernc writer/reader、PRAGMA、迁移/checksum/备份；从空库与失败迁移可恢复 | ENG-01 | TODO |
+| ENG-01 | P1 | app/bridge/modules 基础；删除演示循环/Greet；现有 xhs CLI 保持可用 | PLAN-01 | DONE |
+| ENG-02 | P1 | 修正 build 配置忽略、应用元信息与构建任务；Windows 构建通过，干净检出在 QA-02 复验 | ENG-01 | DONE |
+| ENG-03 | P1 | 核对并锁定 Wails/runtime/最新 AntD/Router/React 依赖；统一 pnpm/TS 脚本和生成契约 | ENG-01 | DONE |
+| DB-01 | P1 | modernc writer/reader、PRAGMA、迁移/checksum/备份；从空库与失败迁移可恢复 | ENG-01 | DONE |
 | DB-02 | P2→P3 | 分闭环落地全数据模型/枚举/索引，typed repository，所有业务 SQL 集中；schema 与查询测试 | DB-01 | TODO |
 | DB-03 | P4 | cursor/组合过滤/索引实测、短事务并发、清理与备份恢复；无全表 UI 扫描 | DB-02、HIS-02 | TODO |
-| LIFE-01 | P1→P4 | Runtime Start/Close、单实例、逆序回滚、root context、lease/worker 退出和重启恢复 | ENG-01、DB-01 | TODO |
-| FE-01 | P1 | 工程化目录、createHashRouter route.lazy、providers/shell/错误边界；产物确实拆页 | ENG-03 | TODO |
-| FE-02 | P1→P5 | Ant tokens、System/Light/Dark、首帧镜像与监听清理；弹层/原生背景全验收 | FE-01 | TODO |
+| LIFE-01 | P1→P4 | P1 Start/Close、单实例、失败回滚、根取消联动/命令等待已实现；后续加入 lease/worker/恢复 | ENG-01、DB-01 | DOING |
+| FE-01 | P1 | 工程化目录、createHashRouter route.lazy、providers/shell/错误边界；产物确实拆页 | ENG-03 | DONE |
+| FE-02 | P1→P5 | P1 Ant tokens、三主题、首帧镜像/监听清理通过；业务页面/原生视觉在后续复验 | FE-01 | DOING |
 | ACC-01 | P2 | Account repository/手动 Cookie CRUD/默认/启用；DPAPI；列表与日志无原文 | DB-02、LIFE-01 | TODO |
 | ACC-02 | P2 | 独立 client/lease、GetMe 校验、凭据更新轮换；旧 client 引用归零关闭 | ACC-01 | TODO |
 | ACC-03 | P3 | 固定/来源分配/受控轮询、账号冷却、禁用取消；每次切换可追踪 | ACC-02 | TODO |
@@ -96,6 +96,7 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | --- | --- | --- | --- |
 | 2026-10-03 | PLAN-01 | 核对 Wails beta.27 模板、xhsapi 详情/分页/媒体类型、API 内存式传输；查询 Ant Design MCP changelog/ConfigProvider/Table；建立本文档组和需求/阶段映射。相对链接、UTF-8 与代码块成对检查通过；仅新增 docs，无依赖安装、业务代码变更或 XHS 网络请求 | 纳入本次 P0 计划提交 |
 | 2026-10-03 | PLAN-01 修订 | 用户明确下载任务与历史按单笔记管理、笔记内多个项串行、并发为同时执行的笔记数。同步架构、schema、接口、UI、调度/恢复与验收；P0 计划阶段提交标题：`docs(desktop): plan note-based download tasks and history` | 本次计划阶段提交，hash 在后续记录引用 |
+| 2026-10-04 | P1 / ENG-01～03、DB-01、FE-01，LIFE-01/FE-02 基础 | 薄 Wails 入口、统一 Runtime、SQLite 单写/读池、集中 SQL/迁移/备份/设置 CAS、系统/明暗主题、懒加载工作空间/设置、原生目录选择及 desktopcheck。`go test ./...`、`go vet ./...`、前端 6 测试/typecheck/lint/build、`wails3 build` 均通过；真实 npm runtime 通过本地 Wails 服务读到重启前设置并正常 Quit。100 次 Runtime 关闭、取消联动与失败回滚已覆盖。原生工具连接及浏览器环境不可用，未验证原生视觉/窗口交互；不将其标为通过。未请求小红书 | P1 命名提交：`feat(desktop): establish application foundation` |
 
 ## 设计变更日志
 
@@ -106,3 +107,4 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | 2026-10-03 | 下载独立 streaming 适配；默认安全覆盖；逐资产历史过滤 | 大文件有界内存、保留旧文件、不同规格/LivePhoto 部分结果可补缺 |
 | 2026-10-03 | root 持有任务，页面路由懒加载、唯一事件订阅 | 页面切换不取消后台任务、不增监听；重启/重载可同步状态 |
 | 2026-10-03 | 用户修正：一笔记一下载任务/历史，笔记并发、下载项串行 | 移除 TaskNote 中间层与文件并发配置；batch 仅分组，历史增加项明细，补缺仍核对逐资产有效文件；每阶段验收后立即命名提交 |
+| 2026-10-04 | P1 版本锁定与验证边界 | AntD 6.6.5、React 19.3.0、Router 8.4.0、SQLite 1.60.1；npm runtime 只发布到 beta.26，与 SDK/CLI beta.27 的生成类型及服务调用验证通过。共享 UI chunk 约 520 kB minified，首屏合计约 288 kB gzip；保留构建提示，后续性能阶段处理。不反复尝试不可用的 UI 工具，完成必要检查即提交并推进业务 |

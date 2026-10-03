@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.1.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "0.1.0",
+			"CompanyName": "cry5tallize",
+			"FileDescription": "小红书笔记解析与下载管理",
+			"LegalCopyright": "© 2026 cry5tallize",
+			"ProductName": "XHS Desktop",
+			"Comments": "Wails 3 desktop application"
+		}
+	}
+}

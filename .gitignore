@@ -56,3 +56,19 @@ _live_session.json
 /_scratch/
 
 creator_cookie.json
+
+# Wails source build configuration and platform assets are versioned.
+!/desktop/build/
+!/desktop/build/**
+!/desktop/build/windows/wails.exe.manifest
+/desktop/build/android/
+/desktop/build/ios/
+/desktop/bin/
+/desktop/*.syso
+/desktop/build/windows/nsis/webview2bootstrapper.exe
+/desktop/build/android/.gradle/
+/desktop/build/android/app/build/
+/desktop/build/android/build/
+/desktop/*.sqlite
+/desktop/*.sqlite-shm
+/desktop/*.sqlite-wal
