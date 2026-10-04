@@ -1,5 +1,19 @@
 # 下载配置、任务系统与历史去重
 
+## P2c 已实现边界（2026-10-04）
+
+- `modules/downloads`：纯 Planner、不可变配置、单笔记任务/有序项、调度/状态/基础历史过滤、有界进度 Hub。`storage/download_repository.go` 和集中 downloads SQL 原子写任务/文件/历史/claims/journal；`adapters/mediahttp` 流式 HTTP 与受约束文件操作；app 管理启动、停止和数据目录独占锁。
+- 当前选 Best：主视频首个有地址流、每图首个有地址 variant（沿用 Pretty 的 WebDft 排序）、每张 LivePhoto 首个有地址动态流。静态/动态同图相邻，`representation.image_index` 是文件命名使用的 1 起始顺序。支持封面、文本、Pretty、raw、结果 manifest 开关；辅助项放在媒体之后。
+- 命名清理 Windows 非法字符/设备名并保留 ID/短身份摘要；按作者/笔记分目录。通过 Go 1.26 `os.Root` 约束文件操作，防止路径/链接逃出输出根。Windows Root.Rename 使用相对目录句柄的替换 API，下载前不删除/truncate 正式文件。
+- 配置支持 Overwrite（默认）/SkipExisting、DedupOff/SameOutput、强制忽略历史、严格 SHA-256、每地址额外重试 0～5/总预算 1～64（默认 2/12）、失败后继续/终止。本阶段固定连接 10s、响应头 15s、空闲读取 30s、每主机最多 4 连接，普通 CDN 使用独立标准 HTTP client，不修改 API 的 Chrome_152_PSK。
+- 调度最多 32 个活跃笔记，设置默认 4，向下调整只停止新派发；等待队列在 DB，最多 1000 个排队任务。FIFO，一条笔记的多个 task 经 note_claim 串行；同一 task 逐项执行，路径 claim 和单任务 Running/Finalizing 部分唯一索引兜底。基础退避仍占当前笔记 worker，公平老化/退避让出配额/限速留在 P4。
+- 流式写入使用可复用 256 KiB buffer，校验长度、媒体魔数、SHA-256；拒绝 HTML/JSON。选中流主/备用 URL 精确去重并受尝试预算约束；请求和重定向不携带 Cookie。读写/响应体/Root/临时文件/计时器由 executor 就地释放。
+- 完整文件先关闭并 Sync，写 Finalizing journal，再替换、原子结算文件/笔记计数/历史和释放 claim。重启严格核对正式文件或临时文件摘要后补结算；无有效证据改 Interrupted 重新下载。已有成功项保留。暂停/取消等待 worker，未完成 part 清理，恢复从该项重新下载；尚无 Range/分段续传。DB 提交异常留下的 Finalizing 项要求重启核对后再恢复。
+- 首次执行创建一条笔记历史，RetryFailed/Resume 使用原 task/history。历史过滤逐项核对同输出根的真实文件，size/mtime 一致时快速复用，否则或 StrictHash=true 时流式校验摘要。缺文件重新下载；SkipExisting 不计为已验证资产覆盖。媒体身份目前保守地绑定 snapshot+候选 URL/规格，跨快照不误判同规格多流；跨快照 strong 身份及 AnyValidCopy 留在 P4。
+- manifest 不含 Cookie 或 URL，列出前序文件的规格、静态/动态关联顺序、结果/校验/失败；作为最后一个项执行。取消或提前终止时可能尚未写清单，以数据库历史为准。Pretty/raw 是用户选择的完整元数据输出，仍保留其媒体 URL。
+- typed `downloads:changed`：字节事件 200ms 合并，状态事件唤醒；待发布最多 256 个 task，64 个 replay batch，溢出触发重读。前端 root 唯一订阅，先监听再读 ActiveSnapshot、按 run/sequence/revision 应用缓冲/重放；每 5s 小型 checkpoint 修复末尾事件丢失。bytes 不每次重查列表；落库 checkpoint 为 1s 和项结算。实时任务总量缺失时只显示已传输字节与已结算项，不伪造总字节。
+- 下载/历史懒加载页、配置预览 Drawer、任务文件 Drawer、目录定位、note ID/状态过滤已接真实绑定。作者/日期/多条件高级查询、大列表虚拟化、原生交互/长期故障验收分别留在 P3～P5。
+
 ## 处理链路和模块边界
 
 ```text

@@ -3,12 +3,14 @@
 
 import * as AccountService from "./accountservice.js";
 import * as AppService from "./appservice.js";
+import * as DownloadService from "./downloadservice.js";
 import * as FileService from "./fileservice.js";
 import * as NoteService from "./noteservice.js";
 import * as SettingsService from "./settingsservice.js";
 export {
     AccountService,
     AppService,
+    DownloadService,
     FileService,
     NoteService,
     SettingsService

@@ -8,6 +8,7 @@ import { ThemeProvider } from './theme/ThemeProvider';
 import { readThemePreference } from './theme/preferences';
 import { useTheme } from './theme/context';
 import { router } from './router';
+import { DownloadEventSync } from '@/features/downloads/EventSync';
 
 function NativeAppearance() {
   const { dark } = useTheme();
@@ -25,6 +26,7 @@ export function BootstrapApplication() {
         extra={<Button type="primary" onClick={() => void bootstrap.refetch()}>重试</Button>} />
       : <BootstrapContext value={bootstrap.data}>
         <NativeAppearance />
+        <DownloadEventSync />
         <RouterProvider router={router} />
       </BootstrapContext>}
   </ThemeProvider>;

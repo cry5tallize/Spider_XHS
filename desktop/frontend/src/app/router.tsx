@@ -12,5 +12,7 @@ export const router = createHashRouter([{
     { path: 'parse', lazy: () => import('@/features/notes/parse-route') },
     { path: 'notes', lazy: () => import('@/features/notes/library-route') },
     { path: 'notes/:id', lazy: () => import('@/features/notes/detail-route') },
+    { path: 'downloads', lazy: () => import('@/features/downloads/route') },
+    { path: 'history', lazy: () => import('@/features/history/route') },
   ],
 }]);

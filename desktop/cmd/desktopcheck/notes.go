@@ -11,6 +11,7 @@ import (
 
 	xhsadapter "github.com/cry5tallize/xhs_spider_desktop/internal/adapters/xhs"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/app"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
 )
@@ -22,6 +23,8 @@ func runNotes(args []string) (err error) {
 	directory := flags.String("data-dir", "", "application data directory (required)")
 	file := flags.String("note-file", "", "raw items array/feed response for offline import")
 	id := flags.String("note", "", "note ID to inspect; omitted lists recent notes")
+	taskID := flags.String("task", "", "download task ID to inspect")
+	history := flags.Bool("history", false, "list note-based download history")
 	out := flags.String("out", "", "optional Pretty JSON output file")
 	if err = flags.Parse(args[1:]); err != nil {
 		return err
@@ -76,15 +79,35 @@ func runNotes(args []string) (err error) {
 		}
 		result = details
 	} else {
-		err = runtime.WithNotes(ctx, func(ctx context.Context, s *notes.Service) error {
-			var e error
-			if *id != "" {
-				result, e = s.GetNote(ctx, *id)
-			} else {
-				result, e = s.ListNotes(ctx, notes.ListInput{Limit: 50})
-			}
-			return e
-		})
+		if *taskID != "" || *history {
+			err = runtime.WithDownloads(ctx, func(ctx context.Context, s *downloads.Service) error {
+				if *history {
+					var e error
+					result, e = s.List(ctx, downloads.ListInput{Limit: 50}, true)
+					return e
+				}
+				t, e := s.GetTask(ctx, *taskID)
+				if e != nil {
+					return e
+				}
+				items, e := s.Items(ctx, *taskID)
+				result = struct {
+					Task  downloads.Task   `json:"task"`
+					Items []downloads.Item `json:"items"`
+				}{t, items}
+				return e
+			})
+		} else {
+			err = runtime.WithNotes(ctx, func(ctx context.Context, s *notes.Service) error {
+				var e error
+				if *id != "" {
+					result, e = s.GetNote(ctx, *id)
+				} else {
+					result, e = s.ListNotes(ctx, notes.ListInput{Limit: 50})
+				}
+				return e
+			})
+		}
 		if err != nil {
 			return err
 		}

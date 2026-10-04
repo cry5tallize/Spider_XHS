@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/adapters/mediahttp"
 	xhsadapter "github.com/cry5tallize/xhs_spider_desktop/internal/adapters/xhs"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/bridge/dto"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/accounts"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/settings"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/datalock"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/secrets"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/storage"
@@ -25,20 +28,23 @@ const (
 var ErrNotReady = errors.New("application is not ready or is closing")
 
 type Runtime struct {
-	mu        sync.RWMutex
-	profile   paths.Profile
-	paths     paths.Paths
-	state     dto.RuntimeState
-	store     *storage.Store
-	settings  *settings.Service
-	accounts  *accounts.Service
-	notes     *notes.Service
-	sessions  *xhsadapter.Sessions
-	cancel    context.CancelFunc
-	ctx       context.Context
-	closeErr  error
-	closeOnce sync.Once
-	commands  sync.WaitGroup
+	mu            sync.RWMutex
+	profile       paths.Profile
+	paths         paths.Paths
+	state         dto.RuntimeState
+	store         *storage.Store
+	settings      *settings.Service
+	accounts      *accounts.Service
+	notes         *notes.Service
+	sessions      *xhsadapter.Sessions
+	downloads     *downloads.Service
+	dataLock      *datalock.Lock
+	emitDownloads func(downloads.EventBatch)
+	cancel        context.CancelFunc
+	ctx           context.Context
+	closeErr      error
+	closeOnce     sync.Once
+	commands      sync.WaitGroup
 }
 
 func NewRuntime(profile paths.Profile, directory string) (*Runtime, error) {
@@ -62,6 +68,13 @@ func (r *Runtime) Start(parent context.Context) error {
 	ctx, cancel := context.WithCancel(parent)
 	r.cancel = cancel
 	r.ctx = ctx
+	lock, err := datalock.Acquire(r.paths.DataDirectory)
+	if err != nil {
+		cancel()
+		r.state = dto.StateFailed
+		return err
+	}
+	r.dataLock = lock
 	store, err := storage.Open(ctx, r.paths.DatabasePath)
 	if err != nil {
 		cancel()
@@ -85,6 +98,19 @@ func (r *Runtime) Start(parent context.Context) error {
 		r.state = dto.StateFailed
 		return errors.Join(fmt.Errorf("initialize note parsing: %w", err), r.sessions.Close(), store.Close())
 	}
+	general, err := service.Get(ctx)
+	if err != nil {
+		cancel()
+		r.state = dto.StateFailed
+		return errors.Join(err, r.notes.Close(), r.sessions.Close(), store.Close())
+	}
+	executor := mediahttp.New()
+	r.downloads, err = downloads.NewService(ctx, store, executor, general.MaxConcurrentNotes, r.emitDownloads)
+	if err != nil {
+		cancel()
+		r.state = dto.StateFailed
+		return errors.Join(err, executor.Close(), r.notes.Close(), r.sessions.Close(), store.Close())
+	}
 	r.store, r.settings, r.state = store, service, dto.StateReady
 	return nil
 }
@@ -100,6 +126,9 @@ func (r *Runtime) Close() error {
 		// No new command can Add after closing. Even Wails' detached incoming
 		// contexts are canceled before waiting, so no DB call outlives Close.
 		r.commands.Wait()
+		if r.downloads != nil {
+			r.closeErr = errors.Join(r.closeErr, r.downloads.Close())
+		}
 		if r.notes != nil {
 			r.closeErr = errors.Join(r.closeErr, r.notes.Close())
 		}
@@ -109,8 +138,13 @@ func (r *Runtime) Close() error {
 		if r.store != nil {
 			r.closeErr = errors.Join(r.closeErr, r.store.Close())
 		}
+		if r.dataLock != nil {
+			r.closeErr = errors.Join(r.closeErr, r.dataLock.Close())
+			r.dataLock = nil
+		}
 		r.mu.Lock()
 		r.settings, r.accounts, r.notes, r.sessions, r.state = nil, nil, nil, nil, dto.StateClosed
+		r.downloads = nil
 		r.mu.Unlock()
 	})
 	return r.closeErr
@@ -155,13 +189,28 @@ func (r *Runtime) WithNotes(caller context.Context, call func(context.Context, *
 	return call(ctx, r.notes)
 }
 
+// SetDownloadEmitter is wired before Start; CLI runtimes leave it nil.
+func (r *Runtime) SetDownloadEmitter(emit func(downloads.EventBatch)) { r.emitDownloads = emit }
+func (r *Runtime) WithDownloads(caller context.Context, call func(context.Context, *downloads.Service) error) error {
+	ctx, done, err := r.beginCommand(caller)
+	if err != nil {
+		return err
+	}
+	defer done()
+	return call(ctx, r.downloads)
+}
+
 func (r *Runtime) UpdateGeneral(caller context.Context, input settings.UpdateGeneral) (settings.General, error) {
 	ctx, done, err := r.beginCommand(caller)
 	if err != nil {
 		return settings.General{}, err
 	}
 	defer done()
-	return r.settings.Update(ctx, input)
+	result, err := r.settings.Update(ctx, input)
+	if err == nil {
+		r.downloads.SetConcurrency(result.MaxConcurrentNotes)
+	}
+	return result, err
 }
 
 func (r *Runtime) Bootstrap(caller context.Context) (dto.Bootstrap, error) {

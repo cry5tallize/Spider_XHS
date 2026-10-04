@@ -4,10 +4,14 @@ import (
 	"context"
 	"errors"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/bridge"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"io/fs"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 )
 
@@ -20,6 +24,7 @@ func Run(assets fs.FS) (err error) {
 	defer func() { err = errors.Join(err, runtime.Close()) }()
 	var mainWindow atomic.Pointer[application.WebviewWindow]
 	var wails *application.App
+	runtime.SetDownloadEmitter(func(batch downloads.EventBatch) { wails.Event.Emit(downloads.EventName, batch) })
 	appearance := func(dark bool) {
 		window := mainWindow.Load()
 		if window == nil {
@@ -49,6 +54,14 @@ func Run(assets fs.FS) (err error) {
 			application.NewService(bridge.NewSettingsService(runtime)),
 			application.NewService(bridge.NewAccountService(runtime)),
 			application.NewService(bridge.NewNoteService(runtime)),
+			application.NewService(bridge.NewDownloadService(runtime, func(path string) error {
+				path = filepath.ToSlash(path)
+				if !strings.HasPrefix(path, "/") {
+					path = "/" + path
+				}
+				u := url.URL{Scheme: "file", Path: path}
+				return wails.Browser.OpenURL(u.String())
+			})),
 			application.NewService(bridge.NewFileService(chooseDirectory)),
 		},
 		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},

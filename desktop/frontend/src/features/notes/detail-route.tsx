@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Alert, App, Button, Card, Collapse, Descriptions, Empty, Modal, Select, Space, Spin, Tabs, Tag, Typography } from 'antd';
-import { ArrowLeftOutlined, CopyOutlined, FileTextOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CopyOutlined, FileTextOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { getNote, getSnapshot, listSnapshots, getRawSnapshot } from './api';
 import { formatTime } from './labels';
 import { StreamTable } from './media/StreamTable';
 import { ImageCandidates } from './media/ImageCandidates';
+import { CreateDownloadDrawer } from '@/features/downloads/CreateDrawer';
 
 function RawResponse({ id }: { id: string }) {
   const { message } = App.useApp();
@@ -24,6 +25,7 @@ export function Component() {
   const snapshotID = params.get('snapshot') || '';
   const [rawOpen, setRawOpen] = useState(false);
   const [prettyOpen, setPrettyOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const result = useQuery({ queryKey: ['note-detail', id, snapshotID], staleTime: snapshotID ? Infinity : 0, queryFn: ({ signal }) => snapshotID ? getSnapshot(snapshotID, signal) : getNote(id, signal) });
   const snapshots = useQuery({ queryKey: ['note-snapshots', id], staleTime: 0, queryFn: ({ signal }) => listSnapshots(id, signal) });
   if (result.isPending) return <div className="page"><Spin /></div>;
@@ -32,7 +34,7 @@ export function Component() {
   const warnings = snapshot.warnings ?? [];
   return <div className="page note-detail-page">
     <div className="page-toolbar"><Button type="text" icon={<ArrowLeftOutlined />} onClick={() => void navigate('/notes')}>笔记库</Button>
-      <Space><Button icon={<FileTextOutlined />} onClick={() => setPrettyOpen(true)}>Pretty 数据</Button><Button onClick={() => setRawOpen(true)}>原始响应</Button></Space>
+      <Space><Button icon={<FileTextOutlined />} onClick={() => setPrettyOpen(true)}>Pretty 数据</Button><Button onClick={() => setRawOpen(true)}>原始响应</Button><Button type="primary" icon={<DownloadOutlined />} onClick={() => setDownloadOpen(true)}>下载笔记</Button></Space>
     </div>
     <Typography.Title level={2} style={{ marginTop: 0 }}>{note.title || '无标题笔记'}</Typography.Title>
     <Space wrap style={{ marginBottom: 20 }}><Tag color="blue">{note.type === 'video' ? '视频笔记' : note.type === 'normal' ? '图文笔记' : note.type}</Tag>
@@ -81,5 +83,6 @@ export function Component() {
     <Modal title="完整 Pretty 数据" open={prettyOpen} onCancel={() => setPrettyOpen(false)} footer={null} width={1000} destroyOnHidden>
       <pre className="json-view">{JSON.stringify(result.data, null, 2)}</pre>
     </Modal>
+    <CreateDownloadDrawer open={downloadOpen} onClose={() => setDownloadOpen(false)} snapshotID={snapshot.id} title={note.title} />
   </div>;
 }

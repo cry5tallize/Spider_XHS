@@ -1,6 +1,6 @@
 # 实施路线与进度台账
 
-更新时间：2026-10-04。当前阶段：P1、P2a 已提交，P2b 单笔记后台解析、笔记库、全媒体详情及快照已实现；下一阶段 P2c 下载与历史。P2 按这些可独立交付的子阶段命名提交。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
+更新时间：2026-10-04。当前阶段：P1、P2a、P2b 已提交，P2c 笔记下载/实时进度/历史基础闭环已实现；下一阶段 P3 批量/用户解析与完整媒体选择。每个子阶段独立命名提交。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
 
 ## 进度维护规则
 
@@ -34,9 +34,9 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | ENG-02 | P1 | 修正 build 配置忽略、应用元信息与构建任务；Windows 构建通过，干净检出在 QA-02 复验 | ENG-01 | DONE |
 | ENG-03 | P1 | 核对并锁定 Wails/runtime/最新 AntD/Router/React 依赖；统一 pnpm/TS 脚本和生成契约 | ENG-01 | DONE |
 | DB-01 | P1 | modernc writer/reader、PRAGMA、迁移/checksum/备份；从空库与失败迁移可恢复 | ENG-01 | DONE |
-| DB-02 | P2→P3 | 账号、作者/笔记/不可变快照/单笔记解析作业已落地；下载与批量模型待对应阶段；typed repository/集中 SQL | DB-01 | DOING |
+| DB-02 | P2→P3 | 账号/笔记/快照/解析作业及笔记任务/有序文件/历史/attempt/claims/journal 已落地；批量/访问来源在 P3；typed repository/集中 SQL | DB-01 | DOING |
 | DB-03 | P4 | cursor/组合过滤/索引实测、短事务并发、清理与备份恢复；无全表 UI 扫描 | DB-02、HIS-02 | TODO |
-| LIFE-01 | P1→P4 | P1 Start/Close、单实例、失败回滚、根取消联动/命令等待已实现；后续加入 lease/worker/恢复 | ENG-01、DB-01 | DOING |
+| LIFE-01 | P1→P4 | 根取消/命令等待、账号 lease、解析/下载 worker、事件出口和数据目录独占锁已实现；基础提交恢复通过，长期故障/关闭验收在 P4 | ENG-01、DB-01 | DOING |
 | FE-01 | P1 | 工程化目录、createHashRouter route.lazy、providers/shell/错误边界；产物确实拆页 | ENG-03 | DONE |
 | FE-02 | P1→P5 | P1 Ant tokens、三主题、首帧镜像/监听清理通过；业务页面/原生视觉在后续复验 | FE-01 | DOING |
 | ACC-01 | P2a | 账号 CRUD/默认/启用；Windows DPAPI；普通 DTO 无 Cookie；软删除清凭据 | DB-02、LIFE-01 | DONE |
@@ -46,15 +46,15 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | PAR-02 | P3 | 文本输入提取/短链展开/批量幂等/有界队列/部分失败/失败重试 | PAR-01 | TODO |
 | PAR-03 | P3 | 用户轻量列表适配、逐页事务/游标恢复/背压、单独 note token 补详情、多用户 | PAR-02 | TODO |
 | PAR-04 | P3 | 类型/日期/范围/cache/raw 配置与警告；达到上限不会伪报全量 | PAR-03 | TODO |
-| DL-01 | P2→P3 | 纯 Planner/candidate 身份/config Validate；先默认 Best，再全部/自定义/LivePhoto/模板预览 | PAR-01 | TODO |
-| DL-02 | P2 | 流式单连接 executor/临时文件/校验/默认安全覆盖/成功入库；大文件不整体载入内存 | DL-01、DB-02 | TODO |
-| DL-03 | P2→P4 | 单笔记 task/有序 item 状态机、有界笔记 pool、每笔记同时一项、暂停/取消；再加公平配额/热更新/限速/当前项退避后继续 | DL-02、LIFE-01 | TODO |
-| EVT-01 | P2→P4 | 类型化批量事件、唯一监听/清理、revision、snapshot 同步、ring 溢出恢复 | DL-03、FE-01 | TODO |
-| HIS-01 | P2 | 一笔记任务一历史、项结果明细、作者/账号关联、失败重试沿用原记录；笔记分页/目录定位、重启可读 | DL-02 | TODO |
-| FE-03 | P2 | 账号、单笔记解析、笔记库/全部候选/快照已接真实绑定；下载任务与历史在 P2c 接入 | PAR-01、DL-03、EVT-01、HIS-01 | DOING |
+| DL-01 | P2→P3 | 纯 Best Planner、配置校验、LivePhoto 相邻配对/辅助输出/计划预览已实现；All/Custom/模板在 P3 | PAR-01 | DOING |
+| DL-02 | P2c | 流式单连接/256 KiB buffer、长度/类型/SHA 校验、Root 临时文件/安全覆盖、journal/结算入库；无整文件内存缓存 | DL-01、DB-02 | DONE |
+| DL-03 | P2→P4 | 笔记 pool/DB 队列/同笔记 claim/项串行、暂停恢复取消、热更新并发已实现；公平/限速/退避释放配额在 P4 | DL-02、LIFE-01 | DOING |
+| EVT-01 | P2→P4 | typed 下载事件、root 唯一订阅、revision/run/sequence、快照/64批重放和溢出重读已接入；事件故障/长期验收在 P4 | DL-03、FE-01 | DOING |
+| HIS-01 | P2c | 一笔记任务一历史、按序结果、作者/账号关联、原任务恢复/重试；note/state 过滤与游标、目录定位、重启可读 | DL-02 | DONE |
+| FE-03 | P2 | 账号→解析→详情→下载预览/创建→实时任务→历史全部接真实绑定；原生视觉/交互留 QA-02 | PAR-01、DL-03、EVT-01、HIS-01 | DONE |
 | DL-04 | P3 | 完整配置矩阵逐项实现，全部编码/scene/流、LivePhoto/metadata/raw 输出，presets 版本化 | DL-01、PAR-04 | TODO |
-| DL-05 | P4 | 备用/预算/Retry-After/URL 刷新、Range/分段、finalize journal/异常重启恢复 | DL-03、DL-04 | TODO |
-| HIS-02 | P4 | 笔记级历史/逐项覆盖验证、strong/weak 身份、SameOutput/AnyValidCopy、补缺/强制重下、note/asset claim 防竞态 | HIS-01、DL-04、DL-05 | TODO |
+| DL-05 | P4 | 备用 URL/总预算、基础 journal/提交中断恢复已实现；Retry-After/URL 刷新、Range/分段和全面故障验收待完成 | DL-03、DL-04 | DOING |
+| HIS-02 | P4 | 同快照/同根逐项覆盖、缺文件补下、强制重下和 note/path claim 已实现；跨快照 strong/weak、AnyValidCopy/文件有效性索引待完成 | HIS-01、DL-04、DL-05 | DOING |
 | FE-04 | P3→P4 | 批量/用户、多账号、全部配置、候选详情、历史过滤和失败恢复界面 | FE-03、ACC-03、PAR-04、DL-04、HIS-02 | TODO |
 | QA-01 | P4 | 笔记并发上限/笔记内串行/历史单位与补缺，存储/故障注入/断点/覆盖/取消回归及资源循环测试 | DB-03、DL-05、HIS-02、EVT-01 | TODO |
 | FE-05 | P5 | 大列表虚拟化/懒加载包检查/体验/键盘/主题/长时间任务性能；页面切换无重复事件 | FE-02、FE-04、QA-01 | TODO |
@@ -101,6 +101,8 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | 2026-10-04 | P2a / ACC-01、ACC-02 校验子范围 | 迁移 0002/accounts 集中查询；Windows DPAPI + 每账号 entropy；添加/改名/换 Cookie/默认/禁用/软删除清凭据；手动 GetMe（20s context/现有15s传输）、版本守卫拒绝旧响应、普通 DTO 无原文；账号懒加载页面接实际绑定。存储/DPAPI/Runtime/CLI 相关测试及前端 typecheck/lint/build 通过，无真实 XHS 请求。会话复用及账号级取消尚未完成，ACC-02 保持 DOING | P2a 命名提交：`feat(desktop): manage encrypted account cookies` |
 | 2026-10-04 | P2a 提交 | 多账号 Cookie 配置已独立提交 | `eaf12cc` |
 | 2026-10-04 | P2b / PAR-01、ACC-02；DB-02/FE-03 子范围，负责人 Codex | 迁移 0003：作者/笔记投影、不可变全媒体快照、解析作业；集中 notes/parsing SQL，完成/取消事务守卫及账号版本守卫；root 持有 2 个解析 worker + 32 个等待槽，45s 作业超时，重启/退出标 Interrupted。版本化 lease 共用 GetMe/详情，旧请求取消并等最后引用释放后关闭，缓存命中不重复解密。前端懒加载解析/笔记库/详情，视频动态流/图片全部 Scene/LivePhoto 表、快照切换、按需原文。CLI parse/inspect 离线入库与重启查询。6 项新增离线检查及前端 lint/typecheck/生产构建、Windows `wails3 build` 通过；样本全部媒体/原文/警告保留，取消后迟到提交回滚。无真实 XHS 请求。下载、批量/用户解析、访问参数加密持久化和事件汇聚尚未实现 | P2b 命名提交：`feat(desktop): persist parsed notes and media snapshots` |
+| 2026-10-04 | P2b 提交 | 笔记解析与快照已独立提交 | `76043e8` |
+| 2026-10-04 | P2c / DL-02、HIS-01、FE-03；DL-01/03/05、EVT-01、HIS-02、DB-02/LIFE-01 子范围，负责人 Codex | 迁移 0004，集中并缓存 downloads SQL；Best planner/配置/预览；有界笔记并发、note/path claim、项串行；流式/校验/安全替换/journal；暂停/取消/原任务恢复/失败项重试；逐项真实文件过滤；typed 合并事件/前端root订阅与重同步；任务/历史懒加载页面和目录定位；数据目录独占锁。5 项关键新增离线检查（并发/串行/历史与缺文件、暂停恢复取消、rename后DB未提交恢复、备用/覆盖/拒绝错误页、锁释放）通过，前端 typecheck/lint/生产构建及 Windows `wails3 build` 通过。CLI本机服务器完成视频3项、LivePhoto18项、图文3项；未访问真实小红书。每一任务一历史，恢复不重复创建。高级选择/批量、断点/限速/刷新及跨快照身份留 P3/P4，原生交互留 QA-02 | P2c 命名提交：`feat(desktop): download note tasks with progress and history` |
 
 ## 设计变更日志
 
@@ -112,3 +114,4 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | 2026-10-03 | root 持有任务，页面路由懒加载、唯一事件订阅 | 页面切换不取消后台任务、不增监听；重启/重载可同步状态 |
 | 2026-10-03 | 用户修正：一笔记一下载任务/历史，笔记并发、下载项串行 | 移除 TaskNote 中间层与文件并发配置；batch 仅分组，历史增加项明细，补缺仍核对逐资产有效文件；每阶段验收后立即命名提交 |
 | 2026-10-04 | P1 版本锁定与验证边界 | AntD 6.6.5、React 19.3.0、Router 8.4.0、SQLite 1.60.1；npm runtime 只发布到 beta.26，与 SDK/CLI beta.27 的生成类型及服务调用验证通过。共享 UI chunk 约 520 kB minified，首屏合计约 288 kB gzip；保留构建提示，后续性能阶段处理。不反复尝试不可用的 UI 工具，完成必要检查即提交并推进业务 |
+| 2026-10-04 | P2c 当前历史用例随下载模块交付；媒体 HTTP 与文件暂共用 streaming executor port | 历史结算必须与任务/文件同事务，基础查询复用 Task/Item DTO；更丰富查询/独立文件能力在后续拆小接口，不建立占位模块。新增明确源码例外覆盖全局 downloads/ 忽略规则，生成下载文件继续忽略 |

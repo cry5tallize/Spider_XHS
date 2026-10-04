@@ -13,6 +13,15 @@ build/
 develop-eggs/
 dist/
 downloads/
+# Download modules are source code; generated downloads remain ignored.
+!/desktop/internal/modules/downloads/
+!/desktop/internal/modules/downloads/**
+!/desktop/internal/storage/sql/queries/downloads/
+!/desktop/internal/storage/sql/queries/downloads/**
+!/desktop/frontend/src/features/downloads/
+!/desktop/frontend/src/features/downloads/**
+!/desktop/frontend/bindings/github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads/
+!/desktop/frontend/bindings/github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads/**
 eggs/
 .eggs/
 lib/

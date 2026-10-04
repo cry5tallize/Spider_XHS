@@ -76,6 +76,8 @@ desktop/
 
 ## 依赖方向
 
+P2c 的实际实现：`modules/downloads/{model,planner,service,events}.go`、`adapters/mediahttp` streaming executor、`storage/download_repository.go` 及集中 SQL、`platform/datalock`。基础历史查询/覆盖策略随 downloads 用例交付，前端 history 路由复用 TaskList；未创建空 history 模块。更丰富历史查询和文件能力在 P3/P4 按实际职责拆分窄接口。`internal/testkit/mediafixture` 只供离线 CLI/检查，不由应用装配引用。
+
 ```mermaid
 flowchart TD
   APP[app 装配/生命周期] --> BR[bridge Wails 入口]
