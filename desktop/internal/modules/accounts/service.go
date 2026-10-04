@@ -29,7 +29,7 @@ type Secrets interface {
 
 type Probe interface {
 	CheckCookie(string) error
-	CheckAccount(context.Context, string) (Identity, Status, error)
+	CheckAccount(context.Context, string) (Identity, Status, int64, error)
 }
 
 type Service struct {
@@ -37,10 +37,45 @@ type Service struct {
 	secrets    Secrets
 	probe      Probe
 	clock      func() time.Time
+	invalidate func(string)
 }
 
 func NewService(repository Repository, secrets Secrets, probe Probe) *Service {
-	return &Service{repository, secrets, probe, time.Now}
+	return &Service{repository: repository, secrets: secrets, probe: probe, clock: time.Now}
+}
+
+// SetInvalidator is wired once during application startup, before commands run.
+func (s *Service) SetInvalidator(invalidate func(string)) { s.invalidate = invalidate }
+
+func (s *Service) invalidateClient(id string) {
+	if s.invalidate != nil {
+		s.invalidate(id)
+	}
+}
+
+func (s *Service) SessionAccount(ctx context.Context, id string) (Account, error) {
+	return s.repository.GetAccount(ctx, id)
+}
+
+// ReadCookie is an internal adapter port, never a bridge command. Callers must
+// not log or retain its returned plaintext outside the owned session client.
+func (s *Service) ReadCookie(ctx context.Context, id string) (string, int64, error) {
+	c, err := s.repository.GetCredential(ctx, id)
+	if err != nil {
+		return "", 0, err
+	}
+	if !c.Account.Enabled {
+		return "", 0, ErrDisabled
+	}
+	if c.Provider != s.secrets.Provider() {
+		return "", 0, errors.New("不支持此账号的凭据保护方式")
+	}
+	plain, err := s.secrets.Unprotect(c.Ciphertext, id)
+	if err != nil {
+		return "", 0, errors.New("无法解密 Cookie，请重新填写")
+	}
+	defer clear(plain)
+	return string(plain), c.Account.CredentialVersion, nil
 }
 
 func normalizeName(name string) (string, error) {
@@ -98,6 +133,9 @@ func (s *Service) Update(ctx context.Context, input Update) (Account, error) {
 	if err = s.repository.UpdateAccount(ctx, input, s.clock().UnixMilli()); err != nil {
 		return Account{}, err
 	}
+	if !input.Enabled {
+		s.invalidateClient(input.ID)
+	}
 	return s.repository.GetAccount(ctx, input.ID)
 }
 
@@ -113,6 +151,7 @@ func (s *Service) ReplaceCookie(ctx context.Context, input ReplaceCookie) (Accou
 	if err = s.repository.ReplaceAccountCookie(ctx, input.ID, ciphertext, s.secrets.Provider(), input.ExpectedVersion, s.clock().UnixMilli()); err != nil {
 		return Account{}, err
 	}
+	s.invalidateClient(input.ID)
 	return s.repository.GetAccount(ctx, input.ID)
 }
 
@@ -124,29 +163,21 @@ func (s *Service) SetDefault(ctx context.Context, id string) (Account, error) {
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error {
-	return s.repository.DeleteAccount(ctx, id, s.clock().UnixMilli())
+	if err := s.repository.DeleteAccount(ctx, id, s.clock().UnixMilli()); err != nil {
+		return err
+	}
+	s.invalidateClient(id)
+	return nil
 }
 
 // Validate is an explicit user command. Creating/listing an account never sends a request.
 func (s *Service) Validate(ctx context.Context, id string) (Account, error) {
-	credential, err := s.repository.GetCredential(ctx, id)
-	if err != nil {
-		return Account{}, err
-	}
-	if !credential.Account.Enabled {
-		return Account{}, ErrDisabled
-	}
-	if credential.Provider != s.secrets.Provider() {
-		return Account{}, errors.New("不支持此账号的凭据保护方式")
-	}
-	plain, err := s.secrets.Unprotect(credential.Ciphertext, id)
-	if err != nil {
-		return Account{}, errors.New("无法解密 Cookie，请在当前系统账号下重新填写")
-	}
-	defer clear(plain)
 	probeCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	identity, status, probeErr := s.probe.CheckAccount(probeCtx, string(plain))
+	identity, status, version, probeErr := s.probe.CheckAccount(probeCtx, id)
+	if version == 0 {
+		return Account{}, probeErr
+	}
 	if ctx.Err() != nil {
 		return Account{}, ctx.Err()
 	}
@@ -154,7 +185,7 @@ func (s *Service) Validate(ctx context.Context, id string) (Account, error) {
 	if probeErr != nil {
 		validation.Error = probeErr.Error()
 	}
-	if err = s.repository.SaveAccountValidation(ctx, id, credential.Account.CredentialVersion, validation); err != nil {
+	if err := s.repository.SaveAccountValidation(ctx, id, version, validation); err != nil {
 		return Account{}, err
 	}
 	return s.repository.GetAccount(ctx, id)

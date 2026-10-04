@@ -48,6 +48,7 @@ func Run(assets fs.FS) (err error) {
 			application.NewService(bridge.NewAppService(runtime, appearance)),
 			application.NewService(bridge.NewSettingsService(runtime)),
 			application.NewService(bridge.NewAccountService(runtime)),
+			application.NewService(bridge.NewNoteService(runtime)),
 			application.NewService(bridge.NewFileService(chooseDirectory)),
 		},
 		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},

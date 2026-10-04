@@ -13,15 +13,15 @@ export function AppShell() {
   const navigate = useNavigate();
   const bootstrap = useBootstrap();
   const { token } = theme.useToken();
-  const selected = ['/settings', '/accounts'].includes(location.pathname) ? location.pathname : '/';
+  const selected = ['/settings', '/accounts', '/parse', '/notes'].find(path => location.pathname === path || location.pathname.startsWith(`${path}/`)) || '/';
   return <Layout className="desktop-shell">
     <Layout.Sider width={216} collapsedWidth={72} collapsed={collapsed}
       style={{ background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorderSecondary}` }}>
       <div className="brand"><div className="brand-mark">X</div>{!collapsed && <div><strong>XHS Desktop</strong><small>你的笔记工作空间</small></div>}</div>
       <Menu mode="inline" selectedKeys={[selected]} onClick={({ key }) => void navigate(key)} items={[
         { key: '/', icon: <AppstoreOutlined />, label: '工作空间' },
-        { key: '/parse', icon: <LinkOutlined />, label: '解析笔记', disabled: true },
-        { key: '/notes', icon: <FileImageOutlined />, label: '笔记库', disabled: true },
+        { key: '/parse', icon: <LinkOutlined />, label: '解析笔记' },
+        { key: '/notes', icon: <FileImageOutlined />, label: '笔记库' },
         { key: '/downloads', icon: <DownloadOutlined />, label: '下载任务', disabled: true },
         { key: '/history', icon: <HistoryOutlined />, label: '下载历史', disabled: true },
         { key: '/accounts', icon: <UserOutlined />, label: '账号管理' },
@@ -34,7 +34,7 @@ export function AppShell() {
       <Layout.Header className="titlebar" style={{ background: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
         <Button className="no-drag" type="text" aria-label={collapsed ? '展开导航' : '收起导航'}
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} />
-        <Typography.Text className="titlebar-label">{selected === '/settings' ? '设置' : selected === '/accounts' ? '账号管理' : '工作空间'}</Typography.Text>
+        <Typography.Text className="titlebar-label">{{ '/settings': '设置', '/accounts': '账号管理', '/parse': '解析笔记', '/notes': '笔记库' }[selected] || '工作空间'}</Typography.Text>
         <div className="window-actions no-drag">
           <Tooltip title="最小化"><Button type="text" aria-label="最小化" icon={<MinusOutlined />} onClick={() => void minimizeWindow().catch(console.error)} /></Tooltip>
           <Tooltip title="最大化"><Button type="text" aria-label="最大化" icon={<BorderOutlined />} onClick={() => void maximizeWindow().catch(console.error)} /></Tooltip>

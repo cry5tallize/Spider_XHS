@@ -11,8 +11,8 @@ export function Component() {
   return <div className="page welcome-page">
     <div className="eyebrow">你的个人工作空间</div>
     <Typography.Title level={1}>让每一篇笔记，都井然有序。</Typography.Title>
-    <Typography.Paragraph type="secondary" className="page-description">统一整理媒体、下载偏好与本地记录，从配置你的工作空间开始。</Typography.Paragraph>
-    <Button type="primary" size="large" icon={<ArrowRightOutlined />} iconPlacement="end" onClick={() => void navigate('/settings')}>配置偏好</Button>
+    <Typography.Paragraph type="secondary" className="page-description">粘贴笔记链接，完整整理视频、图片与 LivePhoto，保留每一次解析的媒体快照。</Typography.Paragraph>
+    <Button type="primary" size="large" icon={<ArrowRightOutlined />} iconPlacement="end" onClick={() => void navigate('/parse')}>解析笔记</Button>
     <div className="preference-grid">
       {[
         { icon: <FolderOpenOutlined />, title: '下载位置', value: settings.output_directory || '尚未设置', caption: '为笔记选择一个专属文件夹' },

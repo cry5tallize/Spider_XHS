@@ -1,5 +1,16 @@
 # 多账号与笔记解析
 
+## P2b 已实现边界（2026-10-04）
+
+- `modules/notes` 持有单笔记作业；`adapters/xhs` 负责既有详情接口/Pretty；`storage` 负责投影和不可变快照，`bridge/NoteService` 只做生命周期保护与调用。
+- `StartParse` 输入完整链接/ID、固定账号（可留空使用默认）、request_id；返回持久化作业。2 个解析 worker、32 个等待槽，45s 作业超时。`GetParseJob/ListParseJobs/CancelParse` 查询/取消；页面切换不停止后台工作。重复 request_id 不重复执行，不能改作业目标或明确指定的账号。
+- 详情沿用 `GetNoteByID → DecodeNotes`；保留原链接的 token/source、不调用 GetVideoURL。可用笔记附带全部字段路径 warnings；未找到目标笔记则失败，不用响应里其他笔记替代。
+- 快照原子保存作者/笔记投影、全部 Pretty、原始响应、SHA-256、warnings、解析账号/凭据版本、解析器版本、完成状态。取消后或账号版本变更后，迟到结果不能提交。无作者 ID 时允许空关联；LivePhoto 保留图片属性及对应 motion_streams。
+- 账号校验与解析共用版本化 client/lease；缓存命中仅查询元数据，不重复解密 Cookie。替换/禁用/删除立即取消旧 lease，引用归零才 Close。Runtime 取消并等待命令/worker，再关闭会话和数据库。
+- `ListNotes` 为时间+ID 游标，默认 50、最大 200；详情全部候选按需获取。`GetNote/GetSnapshot/ListSnapshots/GetRawSnapshot` 支持当前与旧快照；最近快照上限 200，最近作业上限 100，批量阶段再补分页。原文不混入普通 DTO。
+- 当前原始响应始终保留；访问 token/source 只保存在等待作业内存，不落盘链接、不日志输出。退出/重启将未完作业标 Interrupted，需重新输入链接，暂不自动恢复请求。P3 加入加密访问来源与持久化批量队列，P4 用于 URL 刷新。
+- 前端只在解析页存在活动作业时每秒查询状态，重新进入页面同步一次；笔记库进入时重新取当前投影。P2c 的 EVT-01 再统一事件订阅与下载实时进度。离线验证使用 `desktopcheck parse/inspect`；线上请求只由用户明确发起。
+
 ## 多账号 Cookie
 
 账号支持新增、重命名、更新 Cookie、验证、禁用、设为默认、删除。用户粘贴 Cookie 文本，后端完成语法/必要字段校验，再用 `GetMe` 验证登录用户；本地保存和远端验证是两步，验证失败也可保存为待修复账号。

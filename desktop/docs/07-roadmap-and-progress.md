@@ -1,6 +1,6 @@
 # 实施路线与进度台账
 
-更新时间：2026-10-04。当前阶段：P1 已提交，P2a 多账号配置已实现；接下来 P2b 笔记解析、P2c 下载与历史。P2 按这些可独立交付的子阶段命名提交。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
+更新时间：2026-10-04。当前阶段：P1、P2a 已提交，P2b 单笔记后台解析、笔记库、全媒体详情及快照已实现；下一阶段 P2c 下载与历史。P2 按这些可独立交付的子阶段命名提交。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
 
 ## 进度维护规则
 
@@ -34,15 +34,15 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | ENG-02 | P1 | 修正 build 配置忽略、应用元信息与构建任务；Windows 构建通过，干净检出在 QA-02 复验 | ENG-01 | DONE |
 | ENG-03 | P1 | 核对并锁定 Wails/runtime/最新 AntD/Router/React 依赖；统一 pnpm/TS 脚本和生成契约 | ENG-01 | DONE |
 | DB-01 | P1 | modernc writer/reader、PRAGMA、迁移/checksum/备份；从空库与失败迁移可恢复 | ENG-01 | DONE |
-| DB-02 | P2→P3 | 分闭环落地全数据模型/枚举/索引，typed repository，所有业务 SQL 集中；schema 与查询测试 | DB-01 | TODO |
+| DB-02 | P2→P3 | 账号、作者/笔记/不可变快照/单笔记解析作业已落地；下载与批量模型待对应阶段；typed repository/集中 SQL | DB-01 | DOING |
 | DB-03 | P4 | cursor/组合过滤/索引实测、短事务并发、清理与备份恢复；无全表 UI 扫描 | DB-02、HIS-02 | TODO |
 | LIFE-01 | P1→P4 | P1 Start/Close、单实例、失败回滚、根取消联动/命令等待已实现；后续加入 lease/worker/恢复 | ENG-01、DB-01 | DOING |
 | FE-01 | P1 | 工程化目录、createHashRouter route.lazy、providers/shell/错误边界；产物确实拆页 | ENG-03 | DONE |
 | FE-02 | P1→P5 | P1 Ant tokens、三主题、首帧镜像/监听清理通过；业务页面/原生视觉在后续复验 | FE-01 | DOING |
 | ACC-01 | P2a | 账号 CRUD/默认/启用；Windows DPAPI；普通 DTO 无 Cookie；软删除清凭据 | DB-02、LIFE-01 | DONE |
-| ACC-02 | P2a→P2b | 手动 GetMe 校验/超时/请求结束关闭、版本守卫已实现；复用 client/lease 与更新取消在 P2b 接入 | ACC-01 | DOING |
+| ACC-02 | P2a→P2b | 手动 GetMe 与解析共享 client/lease；按账号/凭据版本复用，轮换/禁用/删除取消、引用归零关闭；拒绝过时响应 | ACC-01 | DONE |
 | ACC-03 | P3 | 固定/来源分配/受控轮询、账号冷却、禁用取消；每次切换可追踪 | ACC-02 | TODO |
-| PAR-01 | P2 | 详情适配与快照、全部候选/Partial warnings、单条 StartParse/GetResult | ACC-02、DB-02 | TODO |
+| PAR-01 | P2b | 详情适配、全部候选/Partial warnings、单条 StartParse/GetParseJob/CancelParse、笔记/快照/原文查询，重启保留结果 | ACC-02、DB-02 | DONE |
 | PAR-02 | P3 | 文本输入提取/短链展开/批量幂等/有界队列/部分失败/失败重试 | PAR-01 | TODO |
 | PAR-03 | P3 | 用户轻量列表适配、逐页事务/游标恢复/背压、单独 note token 补详情、多用户 | PAR-02 | TODO |
 | PAR-04 | P3 | 类型/日期/范围/cache/raw 配置与警告；达到上限不会伪报全量 | PAR-03 | TODO |
@@ -51,7 +51,7 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | DL-03 | P2→P4 | 单笔记 task/有序 item 状态机、有界笔记 pool、每笔记同时一项、暂停/取消；再加公平配额/热更新/限速/当前项退避后继续 | DL-02、LIFE-01 | TODO |
 | EVT-01 | P2→P4 | 类型化批量事件、唯一监听/清理、revision、snapshot 同步、ring 溢出恢复 | DL-03、FE-01 | TODO |
 | HIS-01 | P2 | 一笔记任务一历史、项结果明细、作者/账号关联、失败重试沿用原记录；笔记分页/目录定位、重启可读 | DL-02 | TODO |
-| FE-03 | P2 | 单笔记、账号、默认配置、任务、历史的完整界面闭环；真实命令替换 mock | PAR-01、DL-03、EVT-01、HIS-01 | TODO |
+| FE-03 | P2 | 账号、单笔记解析、笔记库/全部候选/快照已接真实绑定；下载任务与历史在 P2c 接入 | PAR-01、DL-03、EVT-01、HIS-01 | DOING |
 | DL-04 | P3 | 完整配置矩阵逐项实现，全部编码/scene/流、LivePhoto/metadata/raw 输出，presets 版本化 | DL-01、PAR-04 | TODO |
 | DL-05 | P4 | 备用/预算/Retry-After/URL 刷新、Range/分段、finalize journal/异常重启恢复 | DL-03、DL-04 | TODO |
 | HIS-02 | P4 | 笔记级历史/逐项覆盖验证、strong/weak 身份、SameOutput/AnyValidCopy、补缺/强制重下、note/asset claim 防竞态 | HIS-01、DL-04、DL-05 | TODO |
@@ -99,6 +99,8 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | 2026-10-04 | P1 / ENG-01～03、DB-01、FE-01，LIFE-01/FE-02 基础 | 薄 Wails 入口、统一 Runtime、SQLite 单写/读池、集中 SQL/迁移/备份/设置 CAS、系统/明暗主题、懒加载工作空间/设置、原生目录选择及 desktopcheck。`go test ./...`、`go vet ./...`、前端 6 测试/typecheck/lint/build、`wails3 build` 均通过；真实 npm runtime 通过本地 Wails 服务读到重启前设置并正常 Quit。100 次 Runtime 关闭、取消联动与失败回滚已覆盖。原生工具连接及浏览器环境不可用，未验证原生视觉/窗口交互；不将其标为通过。未请求小红书 | P1 命名提交：`feat(desktop): establish application foundation` |
 | 2026-10-04 | P1 提交 | 工程基础已独立提交，工作区清理；不修改现有 xhs/xhsapi 算法与 CLI 常量 | `42c73d7` |
 | 2026-10-04 | P2a / ACC-01、ACC-02 校验子范围 | 迁移 0002/accounts 集中查询；Windows DPAPI + 每账号 entropy；添加/改名/换 Cookie/默认/禁用/软删除清凭据；手动 GetMe（20s context/现有15s传输）、版本守卫拒绝旧响应、普通 DTO 无原文；账号懒加载页面接实际绑定。存储/DPAPI/Runtime/CLI 相关测试及前端 typecheck/lint/build 通过，无真实 XHS 请求。会话复用及账号级取消尚未完成，ACC-02 保持 DOING | P2a 命名提交：`feat(desktop): manage encrypted account cookies` |
+| 2026-10-04 | P2a 提交 | 多账号 Cookie 配置已独立提交 | `eaf12cc` |
+| 2026-10-04 | P2b / PAR-01、ACC-02；DB-02/FE-03 子范围，负责人 Codex | 迁移 0003：作者/笔记投影、不可变全媒体快照、解析作业；集中 notes/parsing SQL，完成/取消事务守卫及账号版本守卫；root 持有 2 个解析 worker + 32 个等待槽，45s 作业超时，重启/退出标 Interrupted。版本化 lease 共用 GetMe/详情，旧请求取消并等最后引用释放后关闭，缓存命中不重复解密。前端懒加载解析/笔记库/详情，视频动态流/图片全部 Scene/LivePhoto 表、快照切换、按需原文。CLI parse/inspect 离线入库与重启查询。6 项新增离线检查及前端 lint/typecheck/生产构建、Windows `wails3 build` 通过；样本全部媒体/原文/警告保留，取消后迟到提交回滚。无真实 XHS 请求。下载、批量/用户解析、访问参数加密持久化和事件汇聚尚未实现 | P2b 命名提交：`feat(desktop): persist parsed notes and media snapshots` |
 
 ## 设计变更日志
 

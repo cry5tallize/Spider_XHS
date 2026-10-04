@@ -9,5 +9,8 @@ export const router = createHashRouter([{
     { index: true, lazy: () => import('./welcome/route') },
     { path: 'settings', lazy: () => import('@/features/settings/route') },
     { path: 'accounts', lazy: () => import('@/features/accounts/route') },
+    { path: 'parse', lazy: () => import('@/features/notes/parse-route') },
+    { path: 'notes', lazy: () => import('@/features/notes/library-route') },
+    { path: 'notes/:id', lazy: () => import('@/features/notes/detail-route') },
   ],
 }]);

@@ -7,6 +7,7 @@ import (
 	xhsadapter "github.com/cry5tallize/xhs_spider_desktop/internal/adapters/xhs"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/bridge/dto"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/accounts"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/settings"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/secrets"
@@ -31,6 +32,8 @@ type Runtime struct {
 	store     *storage.Store
 	settings  *settings.Service
 	accounts  *accounts.Service
+	notes     *notes.Service
+	sessions  *xhsadapter.Sessions
 	cancel    context.CancelFunc
 	ctx       context.Context
 	closeErr  error
@@ -71,7 +74,17 @@ func (r *Runtime) Start(parent context.Context) error {
 		r.state = dto.StateFailed
 		return errors.Join(fmt.Errorf("initialize settings: %w", err), store.Close())
 	}
-	r.accounts = accounts.NewService(store, secrets.New(), xhsadapter.AccountProbe{})
+	probe := &xhsadapter.AccountProbe{}
+	r.accounts = accounts.NewService(store, secrets.New(), probe)
+	r.sessions = xhsadapter.NewSessions(ctx, r.accounts)
+	probe.Sessions = r.sessions
+	r.accounts.SetInvalidator(r.sessions.Invalidate)
+	r.notes, err = notes.NewService(ctx, store, r.accounts, xhsadapter.NoteFetcher{Sessions: r.sessions})
+	if err != nil {
+		cancel()
+		r.state = dto.StateFailed
+		return errors.Join(fmt.Errorf("initialize note parsing: %w", err), r.sessions.Close(), store.Close())
+	}
 	r.store, r.settings, r.state = store, service, dto.StateReady
 	return nil
 }
@@ -87,11 +100,17 @@ func (r *Runtime) Close() error {
 		// No new command can Add after closing. Even Wails' detached incoming
 		// contexts are canceled before waiting, so no DB call outlives Close.
 		r.commands.Wait()
+		if r.notes != nil {
+			r.closeErr = errors.Join(r.closeErr, r.notes.Close())
+		}
+		if r.sessions != nil {
+			r.closeErr = errors.Join(r.closeErr, r.sessions.Close())
+		}
 		if r.store != nil {
-			r.closeErr = r.store.Close()
+			r.closeErr = errors.Join(r.closeErr, r.store.Close())
 		}
 		r.mu.Lock()
-		r.settings, r.accounts, r.state = nil, nil, dto.StateClosed
+		r.settings, r.accounts, r.notes, r.sessions, r.state = nil, nil, nil, nil, dto.StateClosed
 		r.mu.Unlock()
 	})
 	return r.closeErr
@@ -125,6 +144,15 @@ func (r *Runtime) WithAccounts(caller context.Context, call func(context.Context
 	}
 	defer done()
 	return call(ctx, r.accounts)
+}
+
+func (r *Runtime) WithNotes(caller context.Context, call func(context.Context, *notes.Service) error) error {
+	ctx, done, err := r.beginCommand(caller)
+	if err != nil {
+		return err
+	}
+	defer done()
+	return call(ctx, r.notes)
 }
 
 func (r *Runtime) UpdateGeneral(caller context.Context, input settings.UpdateGeneral) (settings.General, error) {

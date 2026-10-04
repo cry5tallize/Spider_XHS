@@ -26,8 +26,11 @@ func main() {
 }
 
 func run(args []string) (err error) {
+	if len(args) > 0 && (args[0] == "parse" || args[0] == "inspect") {
+		return runNotes(args)
+	}
 	if len(args) == 0 || args[0] != "db" {
-		return errors.New("usage: desktopcheck db [-data-dir directory] [-theme 1|2|3] [-notes 1..32]")
+		return errors.New("usage: desktopcheck db|parse|inspect (see cmd/desktopcheck/README.md)")
 	}
 	flags := flag.NewFlagSet("db", flag.ContinueOnError)
 	directory := flags.String("data-dir", "", "persistent data directory; omitted uses a disposable temporary database")
