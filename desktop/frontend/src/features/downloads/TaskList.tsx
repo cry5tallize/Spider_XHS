@@ -39,6 +39,7 @@ export function TaskList({ history = false }: { history?: boolean }) {
     {query.isError && <Alert type="error" title={query.error.message} style={{ marginBottom: 16 }} />}
     <Card styles={{ body: { padding: 0 } }}><Table<DownloadTask> rowKey="id" dataSource={rows} loading={query.isPending} pagination={false} scroll={{ x: 1100 }} locale={{ emptyText: history ? '开始下载后，这里会保留笔记记录' : '在笔记详情中创建下载任务' }} columns={[
       { title: '笔记', width: 235, render: (_v: unknown, task) => <Space orientation="vertical" size={2}><Button type="link" className="note-title-link" onClick={() => setDetailID(task.id)}>{task.title || '无标题笔记'}</Button>
+        {task.batch_id && <Tag style={{ fontSize: 10 }}>批量 {task.batch_id.slice(0, 6)}</Tag>}
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>{task.author_name || task.author_id}</Typography.Text></Space> },
       { title: '状态', width: 105, render: (_v: unknown, task) => <Tag color={states[task.state]?.color}>{states[task.state]?.label}</Tag> },
       { title: '进度', width: 240, render: (_v: unknown, task) => {

@@ -7,7 +7,7 @@ import * as NoteService from '../../../bindings/github.com/cry5tallize/xhs_spide
 import * as DownloadService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/downloadservice';
 import * as ParsingService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/parsingservice';
 import type { StartCollection, CollectionItemQuery } from '../contracts';
-import type { DownloadConfig, CreateDownloadTask, DownloadListInput, DownloadEventBatch, DownloadChangesInput } from '../contracts';
+import type { DownloadConfig, CreateDownloadTask, DownloadListInput, DownloadEventBatch, DownloadChangesInput, CreateDownloadBatch, SaveDownloadPreset } from '../contracts';
 import type { StartParse, NoteListInput } from '../contracts';
 import type { UpdateGeneral, CreateAccount, UpdateAccount, ReplaceCookie } from '../contracts';
 
@@ -44,6 +44,12 @@ export const listSnapshots = (id: string, signal?: AbortSignal) => withSignal(No
 export const getRawSnapshot = (id: string, signal?: AbortSignal) => withSignal(NoteService.GetRawSnapshot(id), signal);
 export const getDownloadDefaults = (signal?: AbortSignal) => withSignal(DownloadService.GetDefaultConfig(), signal);
 export const buildDownloadPlan = (snapshot_id: string, config: DownloadConfig) => withSignal(DownloadService.BuildPlan({ snapshot_id, config }));
+export const buildDownloadPlans = (snapshot_ids: string[], config: DownloadConfig) => withSignal(DownloadService.BuildPlans({ snapshot_ids, config }));
+export const getMediaCandidates = (id: string, signal?: AbortSignal) => withSignal(DownloadService.GetCandidates(id), signal);
+export const createDownloadBatch = (input: CreateDownloadBatch) => withSignal(DownloadService.CreateTasks(input));
+export const listDownloadPresets = (signal?: AbortSignal) => withSignal(DownloadService.ListPresets(), signal);
+export const saveDownloadPreset = (input: SaveDownloadPreset) => withSignal(DownloadService.SavePreset(input));
+export const deleteDownloadPreset = (id: string) => withSignal(DownloadService.DeletePreset(id));
 export const createDownloadTask = (input: CreateDownloadTask) => withSignal(DownloadService.CreateTask(input));
 export const listDownloadTasks = (input: DownloadListInput, signal?: AbortSignal) => withSignal(DownloadService.ListTasks(input), signal);
 export const queryDownloadHistory = (input: DownloadListInput, signal?: AbortSignal) => withSignal(DownloadService.QueryHistory(input), signal);

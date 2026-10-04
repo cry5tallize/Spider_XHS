@@ -2,7 +2,7 @@
 
 模块：`github.com/cry5tallize/xhs_spider_desktop`。Wails 3 + React + Ant Design，SQLite 使用 modernc pure Go driver。
 
-P2 单笔记闭环及 P3a 批量/用户解析已实现。解析支持分享文本、短链接、UTF-8 导入、固定/按来源分配账号、逐用户分页、筛选/缓存/原文选项、暂停恢复及失败项重试。下载仍支持默认 Best、笔记并发/项串行、实时进度与笔记历史；下一子阶段 P3b 补全部/自定义媒体及批量下载。
+P3 主要业务已实现：批量/用户逐页解析、全部视频流/图片变体、自定义候选、LivePhoto 配对、规格筛选、命名模板、下载预设与批量创建笔记任务。支持分享文本/短链/UTF-8、固定/按来源分配账号、筛选/缓存/raw、暂停恢复/失败项重试；下载保持笔记并发、笔记内串行及实时进度/历史。
 
 ## 运行
 
@@ -22,7 +22,7 @@ wails3 build
 
 首次使用：添加账号 → 解析笔记 → 笔记详情点击“下载笔记” → 选择目录/内容 → 预览 → 创建任务。在任务页暂停、恢复、取消；历史页查看每条笔记的文件结果、重试未完成项或创建新的重下任务。
 
-当前媒体选择为 Best，LivePhoto 导出静态图+原始动态视频+配对清单；全部编码/图片 Scene、自定义选择、模板、Range、限速与 URL 刷新在 P3/P4。暂停会清理当前未完成文件，恢复从该项重新开始；已成功项保留。退出后未完成任务标为“已中断”，需手动恢复。
+默认媒体选择为 Best；可改为每编码最佳、全部或自选流，图片支持全部变体/Scene/自选。LivePhoto 可选静态/动态/两者，清单记录配对。笔记库和解析结果勾选后可以批量预览/创建（一笔记一任务）。保存预设可复用规格筛选和命名模板。Range、限速、URL 刷新及跨快照强身份过滤在 P4。暂停清理当前未完成文件，恢复从该项重新开始；已成功项保留。退出后未完成任务标“已中断”，需手动恢复。
 
 ## 本地检查
 
@@ -35,6 +35,7 @@ go run ./cmd/desktopcheck inspect -data-dir ./.task/local-check
 go run ./cmd/desktopcheck download -fixture-server -data-dir ./.task/download-check
 go run ./cmd/desktopcheck inspect -history -data-dir ./.task/download-check
 go run ./cmd/desktopcheck collect -fixture -mode users -data-dir ./.task/parse-check -out ./.task/users.json
+go run ./cmd/desktopcheck download -fixture-server -all -data-dir ./.task/all-media-check
 go test ./...
 go vet ./...
 ```

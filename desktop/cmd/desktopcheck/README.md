@@ -19,6 +19,7 @@ go run ./cmd/desktopcheck inspect -data-dir ./.task/local-check -note <note_id>
 
 # 用本机服务器下载三类笔记；结果保留在该隔离目录的 downloads 下
 go run ./cmd/desktopcheck download -fixture-server -data-dir ./.task/download-check
+go run ./cmd/desktopcheck download -fixture-server -all -data-dir ./.task/all-media-check
 go run ./cmd/desktopcheck inspect -history -data-dir ./.task/download-check
 go run ./cmd/desktopcheck inspect -task <task_id> -data-dir ./.task/download-check
 
@@ -33,7 +34,7 @@ db 输出 JSON 含数据目录、schema 版本、数字枚举、毫秒更新时�
 
 parse 支持 items 数组或完整 feed JSON（最大 32 MiB），保存每条笔记的全部候选、警告和原始响应，每次导入创建新快照。inspect 默认列出最近 50 条笔记，-note 按当前快照读取完整详情；-out 可将结果写入指定 JSON 文件。parse/inspect 必须指定 -data-dir，导入记录保留以供后续开发。
 
-download 必须带 -fixture-server，所有待下载媒体 URL 会替换为本机地址。-output 可指定输出目录，-note-file 可指定原始样本；总等待上限 60s。它验证的是下载/持久化链路，模拟视频是测试数据，不能用作真实播放样本。任务、文件、JSON/manifest 都保留；服务器在命令结束时关闭。fixture 快照中的本机链接随服务器退出失效，后续重新运行该命令生成新快照。
+download 必须带 -fixture-server，所有待下载媒体 URL 会替换为本机地址。-all 选择全部流/全部图片变体及视频封面，默认仍为 Best。-output 可指定输出目录，-note-file 可指定原始样本；总等待上限 60s。它验证下载/持久化链路，模拟视频是测试数据，不能用作真实播放样本。任务、文件、JSON/manifest 都保留；服务器在命令结束时关闭。fixture 快照中的本机链接随服务器退出失效，后续重新运行该命令生成新快照。
 
 inspect -history 按笔记任务列出历史，-task 读取任务及按序文件结果（成功/失败/跳过/校验摘要/尝试次数）。
 

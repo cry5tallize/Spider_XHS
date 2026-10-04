@@ -36,11 +36,11 @@ func failureJSON(f *downloads.Failure) any {
 }
 func scanTask(row scanner) (downloads.Task, error) {
 	var t downloads.Task
-	var config string
+	var config, pairs string
 	var failure sql.NullString
 	err := row.Scan(&t.ID, &t.NoteID, &t.SnapshotID, &t.Title, &t.AuthorID, &t.AuthorName, &t.AccountID, &t.State, &config, &t.RelativeDirectory, &t.PlanHash, &t.PlannedItems,
 		&t.SuccessfulItems, &t.SkippedItems, &t.FailedItems, &t.FulfilledItems, &t.CompletedBytes, &t.TransferredBytes, &t.CurrentItemID, &t.CurrentSequence, &t.CurrentBytes, &t.CurrentTotal, &failure,
-		&t.CreatedAtMS, &t.StartedAtMS, &t.FinishedAtMS, &t.UpdatedAtMS, &t.Revision)
+		&t.CreatedAtMS, &t.StartedAtMS, &t.FinishedAtMS, &t.UpdatedAtMS, &t.Revision, &t.BatchID, &pairs)
 	if errors.Is(err, sql.ErrNoRows) {
 		return t, downloads.ErrNotFound
 	}
@@ -52,6 +52,9 @@ func scanTask(row scanner) (downloads.Task, error) {
 	}
 	if failure.Valid {
 		err = json.Unmarshal([]byte(failure.String), &t.Failure)
+	}
+	if err == nil {
+		err = json.Unmarshal([]byte(pairs), &t.LivePairs)
 	}
 	return t, err
 }
@@ -93,15 +96,24 @@ func (s *Store) CreateDownloadTask(ctx context.Context, id, request string, p do
 		return errors.New("下载队列已满，请稍后创建")
 	}
 	at := time.Now().UnixMilli()
-	if _, err = tx.ExecContext(ctx, query("downloads/create_task"), id, request, p.NoteID, p.SnapshotID, p.Title, nullString(p.AuthorID), p.AuthorName, nullString(p.AccountID), downloads.Queued, jsonText(p.Config), p.RelativeDirectory, p.Hash, outputKey(p.Config.Output.Directory), len(p.Items), at, at); err != nil {
+	if err = createDownloadTaskTx(ctx, tx, id, request, "", p, at); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+func createDownloadTaskTx(ctx context.Context, tx *sql.Tx, id, request, batch string, p downloads.Plan, at int64) error {
+	if p.LivePairs == nil {
+		p.LivePairs = []downloads.LivePair{}
+	}
+	if _, err := tx.ExecContext(ctx, query("downloads/create_task"), id, request, p.NoteID, p.SnapshotID, p.Title, nullString(p.AuthorID), p.AuthorName, nullString(p.AccountID), downloads.Queued, jsonText(p.Config), p.RelativeDirectory, p.Hash, outputKey(p.Config.Output.Directory), len(p.Items), at, at, nullString(batch), jsonText(p.LivePairs)); err != nil {
 		return err
 	}
 	for _, item := range p.Items {
-		if _, err = tx.ExecContext(ctx, query("downloads/create_item"), rand.Text(), id, item.Sequence, item.Kind, item.AssetKey, item.Confidence, jsonText(item), item.Inline, at, at); err != nil {
+		if _, err := tx.ExecContext(ctx, query("downloads/create_item"), rand.Text(), id, item.Sequence, item.Kind, item.AssetKey, item.Confidence, jsonText(item), item.Inline, at, at); err != nil {
 			return err
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 func (s *Store) GetDownloadTask(ctx context.Context, id string) (downloads.Task, error) {
 	return scanTask(s.reader.QueryRowContext(ctx, query("downloads/get"), id))

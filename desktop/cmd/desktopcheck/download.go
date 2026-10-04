@@ -22,6 +22,7 @@ import (
 func runDownload(args []string) (err error) {
 	flags := flag.NewFlagSet("download", flag.ContinueOnError)
 	fixture := flags.Bool("fixture-server", false, "use only a local fixture server (required)")
+	all := flags.Bool("all", false, "download all codecs/streams/image scenes from the local fixture")
 	directory := flags.String("data-dir", "", "isolated application data directory (required)")
 	output := flags.String("output", "", "download root; default <data-dir>/downloads")
 	noteFile := flags.String("note-file", "internal/xhsapi/testdata/note_response.json", "raw local note response")
@@ -77,7 +78,13 @@ func runDownload(args []string) (err error) {
 			return err
 		}
 		if err = runtime.WithDownloads(ctx, func(ctx context.Context, s *downloads.Service) error {
-			t, e := s.CreateTask(ctx, downloads.CreateTask{RequestID: "fixture-" + d.Snapshot.ID, SnapshotID: d.Snapshot.ID, Config: downloads.Defaults(*output)})
+			config := downloads.Defaults(*output)
+			if *all {
+				config.Selection.Video.Mode = downloads.VideoAll
+				config.Selection.Images.Mode = downloads.ImageAll
+				config.Media.VideoCover = true
+			}
+			t, e := s.CreateTask(ctx, downloads.CreateTask{RequestID: "fixture-" + d.Snapshot.ID, SnapshotID: d.Snapshot.ID, Config: config})
 			ids = append(ids, t.ID)
 			return e
 		}); err != nil {

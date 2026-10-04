@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Alert, App, Button, Card, Progress, Space, Table, Tabs, Tag, Typography } from 'antd';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
-import { CollectionState, type CollectionItem, type CollectionItemQuery, type CollectionSource } from '@/shared/contracts';
+import { CollectionState, CollectionItemState, type CollectionItem, type CollectionItemQuery, type CollectionSource } from '@/shared/contracts';
+import { CreateDownloadDrawer } from '@/features/downloads/CreateDrawer';
 import { getCollection, getCollectionItems, getCollectionSources, getCollectionOrigins, pauseCollection, cancelCollection, resumeCollection, retryCollection, listAccounts } from './api';
 import { collectionActive, collectionStates, collectionItemLabels, sourceLabels } from './labels';
 
@@ -16,6 +17,8 @@ export function Component() {
   const { message, modal } = App.useApp();
   const client = useQueryClient();
   const [tab, setTab] = useState('items');
+  const [selected, setSelected] = useState<CollectionItem[]>([]);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: ({ signal }) => listAccounts(signal) });
   const job = useQuery({ queryKey: ['collection', id], queryFn: ({ signal }) => getCollection(id, signal), staleTime: 0, refetchInterval: q => q.state.data && collectionActive(q.state.data.state) ? 1000 : false });
   const active = job.data && collectionActive(job.data.state);
@@ -37,7 +40,7 @@ export function Component() {
   const accountName = (id: string) => accounts.data?.find(account => account.id === id)?.name || id;
   return <div className="page">
     <div className="page-toolbar"><div><Button type="text" onClick={() => void navigate('/parse')}>返回解析</Button><Typography.Title level={2}>解析作业</Typography.Title></div>
-      <Space>{active && <Button disabled={action.isPending} onClick={() => action.mutate('pause')}>暂停</Button>}
+      <Space><Button type="primary" disabled={!selected.length || selected.length > 200} onClick={() => setDownloadOpen(true)}>下载已选 {selected.length || ''} 笔记</Button>{active && <Button disabled={action.isPending} onClick={() => action.mutate('pause')}>暂停</Button>}
         {result && [CollectionState.Paused, CollectionState.Interrupted].includes(result.state) && <Button onClick={() => action.mutate('resume')} disabled={action.isPending}>继续</Button>}
         {result && [CollectionState.Partial, CollectionState.Failed, CollectionState.Paused].includes(result.state) && <Button onClick={() => action.mutate('retry')} disabled={action.isPending}>重试失败项</Button>}
         {result && [CollectionState.Queued, CollectionState.Running, CollectionState.Paused, CollectionState.Interrupted].includes(result.state) && <Button danger disabled={action.isPending} onClick={() => modal.confirm({ title: '取消解析？', content: '已成功的笔记和快照保留。', okText: '取消解析', cancelText: '继续', onOk: () => action.mutateAsync('cancel') })}>取消</Button>}
@@ -48,7 +51,7 @@ export function Component() {
       {(result.limit_reason || result.failure) && <Alert style={{ marginTop: 16 }} type="warning" title={result.limit_reason || result.failure?.message} />}
     </Card>}
     <Tabs activeKey={tab} onChange={setTab} items={[
-      { key: 'items', label: '笔记结果', children: <><Card styles={{ body: { padding: 0 } }}><Table<CollectionItem> rowKey="id" loading={items.isPending} pagination={false} dataSource={items.data?.pages.flatMap(page => page.items ?? []) ?? []} scroll={{ x: 900 }} columns={[
+      { key: 'items', label: '笔记结果', children: <><Card styles={{ body: { padding: 0 } }}><Table<CollectionItem> rowKey="id" loading={items.isPending} pagination={false} dataSource={items.data?.pages.flatMap(page => page.items ?? []) ?? []} scroll={{ x: 900 }} rowSelection={{ selectedRowKeys: selected.map(item => item.id), preserveSelectedRowKeys: true, onChange: (_keys, rows) => setSelected(rows.filter(Boolean)), getCheckboxProps: item => ({ disabled: !item.snapshot_id || ![CollectionItemState.Complete, CollectionItemState.Incomplete].includes(item.state) }) }} columns={[
         { title: '笔记', render: (_v: unknown, item) => <Space orientation="vertical" size={2}><Typography.Text strong>{item.title || item.note_id}</Typography.Text><Typography.Text type="secondary" style={{ fontSize: 11 }}>{item.note_id}</Typography.Text></Space> },
         { title: '类型', dataIndex: 'raw_kind' }, { title: '账号', render: (_v: unknown, item) => accountName(item.account_id) },
         { title: '状态', render: (_v: unknown, item) => <Space orientation="vertical" size={2}><Typography.Text>{collectionItemLabels[item.state]}</Typography.Text><Typography.Text type={item.failure ? 'danger' : 'secondary'} style={{ fontSize: 12 }}>{item.failure?.message || item.skip_reason}</Typography.Text></Space> },
@@ -62,5 +65,6 @@ export function Component() {
         { title: '说明', render: (_v: unknown, source) => <Typography.Text type={source.failure ? 'danger' : 'secondary'}>{source.failure?.message || source.limit_reason || (source.has_more ? '还有待发现内容' : '已完成发现')}</Typography.Text> },
       ]} /></Card> },
     ]} />
+    <CreateDownloadDrawer open={downloadOpen} onClose={() => setDownloadOpen(false)} snapshotID="" batchSnapshotIDs={selected.map(item => item.snapshot_id)} title={`已选 ${selected.length} 条笔记`} />
   </div>;
 }

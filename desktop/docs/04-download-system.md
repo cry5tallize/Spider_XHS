@@ -1,5 +1,16 @@
 # 下载配置、任务系统与历史去重
 
+## P3b 已实现边界（2026-10-05）
+
+- `downloads.Catalog` 按当前快照与完整候选内容生成稳定 ID，返回动态 codec_group/格式/scene 清单、全部视频/图片/LivePhoto 候选及原规格元数据。不固定组名或数量，不用数组位置作跨快照身份；旧候选用于新快照会拒绝。默认排序仍来自 Pretty。
+- 视频 Best/BestPerCodec/All/Custom；图片 Best/All/Scenes/Custom；LivePhoto Both/Static/Motion；编码/容器/长边/FPS/HDR/未知规格、图片格式/顺序筛选。scene 来源别名也可匹配，WebDft/WB_DFT/WEB_DFT 兼容。无匹配候选有预览警告；不改写签名 URL，不推测额外地址。
+- 相同主 URL 只规划一次物理下载，全部候选仍可查看；备用是同一文件的传输选择。LivePhoto 用显式 pair 的 static_keys/motion_keys 关联实际资产，支持多个变体/动态流及链接复用，落库并导出 manifest。
+- 目录/文件模板校验变量与路径跳转，目录保留 note_id、文件保留 variant_key，即使超长变量被截断也不丢标识。模板不控制扩展名，不创建提前越界路径。
+- 下载预设存 SQLite，schema_version=1；通用自动选择/规格筛选和模板可复用，候选 ID 自选属于具体快照，不保存为通用预设。预设可选择保留目录，否则继承当前设置。已有任务继续使用自己的配置快照。
+- 批量预览/创建支持最多 200 个快照和 64 MiB 计划。按 note 去重，每条笔记仍创建独立 task，batch 只分组；request_id 幂等、所有任务/项同一短事务，不因某条失败留下半批。笔记库与解析结果勾选、预览后明确创建，不自动下载新解析结果。
+- `Config` 保持 schema_version=1，新增 selection/naming 的零值按原 Best 行为解释；无需改写旧配置/任务。迁移 0006 新增批次/预设、任务 batch_id 和 live_pairs_json，原迁移文件不修改。
+- 剩余配置/可靠性：KeepBoth、任意位置副本、跨快照 strong 身份、默认预设自动应用、代理/限速/Retry-After、Range/分段/刷新、公平调度和批次批量控制在后续子范围实施；本次不声称整个配置矩阵已完成。
+
 ## P2c 已实现边界（2026-10-04）
 
 - `modules/downloads`：纯 Planner、不可变配置、单笔记任务/有序项、调度/状态/基础历史过滤、有界进度 Hub。`storage/download_repository.go` 和集中 downloads SQL 原子写任务/文件/历史/claims/journal；`adapters/mediahttp` 流式 HTTP 与受约束文件操作；app 管理启动、停止和数据目录独占锁。

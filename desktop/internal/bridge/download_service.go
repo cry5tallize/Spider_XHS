@@ -58,6 +58,26 @@ func (s *DownloadService) GetDefaultConfig(ctx context.Context) (downloads.Confi
 func (s *DownloadService) BuildPlan(ctx context.Context, i downloads.PlanInput) (downloads.Plan, error) {
 	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) (downloads.Plan, error) { return d.BuildPlan(ctx, i) })
 }
+func (s *DownloadService) GetCandidates(ctx context.Context, id string) (downloads.CandidateCatalog, error) {
+	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) (downloads.CandidateCatalog, error) {
+		return d.GetCandidates(ctx, id)
+	})
+}
+func (s *DownloadService) CreateTasks(ctx context.Context, i downloads.CreateBatch) (downloads.Batch, error) {
+	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) (downloads.Batch, error) { return d.CreateTasks(ctx, i) })
+}
+func (s *DownloadService) BuildPlans(ctx context.Context, i downloads.BatchPlanInput) ([]downloads.Plan, error) {
+	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) ([]downloads.Plan, error) { return d.BuildPlans(ctx, i) })
+}
+func (s *DownloadService) ListPresets(ctx context.Context) ([]downloads.Preset, error) {
+	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) ([]downloads.Preset, error) { return d.ListPresets(ctx) })
+}
+func (s *DownloadService) SavePreset(ctx context.Context, i downloads.SavePreset) (downloads.Preset, error) {
+	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) (downloads.Preset, error) { return d.SavePreset(ctx, i) })
+}
+func (s *DownloadService) DeletePreset(ctx context.Context, id string) error {
+	return s.backend.WithDownloads(ctx, func(ctx context.Context, d *downloads.Service) error { return d.DeletePreset(ctx, id) })
+}
 func (s *DownloadService) CreateTask(ctx context.Context, i downloads.CreateTask) (downloads.Task, error) {
 	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) (downloads.Task, error) { return d.CreateTask(ctx, i) })
 }

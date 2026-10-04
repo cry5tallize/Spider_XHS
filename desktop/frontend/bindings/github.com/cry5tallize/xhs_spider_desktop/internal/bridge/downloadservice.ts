@@ -13,6 +13,10 @@ export function BuildPlan(i: downloads$0.PlanInput): $CancellablePromise<downloa
     return $Call.ByID(849018733, i);
 }
 
+export function BuildPlans(i: downloads$0.BatchPlanInput): $CancellablePromise<downloads$0.Plan[] | null> {
+    return $Call.ByID(3355417658, i);
+}
+
 export function Cancel(id: string): $CancellablePromise<downloads$0.Task> {
     return $Call.ByID(4108082228, id);
 }
@@ -21,8 +25,20 @@ export function CreateTask(i: downloads$0.CreateTask): $CancellablePromise<downl
     return $Call.ByID(2516981815, i);
 }
 
+export function CreateTasks(i: downloads$0.CreateBatch): $CancellablePromise<downloads$0.Batch> {
+    return $Call.ByID(1872245516, i);
+}
+
+export function DeletePreset(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2557475658, id);
+}
+
 export function GetActiveSnapshots(): $CancellablePromise<downloads$0.ActiveSnapshot> {
     return $Call.ByID(1079394449);
+}
+
+export function GetCandidates(id: string): $CancellablePromise<downloads$0.CandidateCatalog> {
+    return $Call.ByID(2117973064, id);
 }
 
 export function GetChangesSince(i: downloads$0.ChangesInput): $CancellablePromise<downloads$0.Changes> {
@@ -35,6 +51,10 @@ export function GetDefaultConfig(): $CancellablePromise<downloads$0.Config> {
 
 export function GetTask(id: string): $CancellablePromise<downloads$0.Task> {
     return $Call.ByID(1800166727, id);
+}
+
+export function ListPresets(): $CancellablePromise<downloads$0.Preset[] | null> {
+    return $Call.ByID(4259642326);
 }
 
 export function ListTaskItems(id: string): $CancellablePromise<downloads$0.Item[] | null> {
@@ -63,4 +83,8 @@ export function Resume(id: string): $CancellablePromise<downloads$0.Task> {
 
 export function RetryFailed(id: string): $CancellablePromise<downloads$0.Task> {
     return $Call.ByID(3842148121, id);
+}
+
+export function SavePreset(i: downloads$0.SavePreset): $CancellablePromise<downloads$0.Preset> {
+    return $Call.ByID(570049148, i);
 }

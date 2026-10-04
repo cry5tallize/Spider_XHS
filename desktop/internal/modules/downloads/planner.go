@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode"
 
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
-	"github.com/cry5tallize/xhs_spider_desktop/internal/xhsapi"
 )
 
 func (c Config) Validate() error {
@@ -30,6 +31,28 @@ func (c Config) Validate() error {
 	}
 	if c.Execution.RetriesPerURL < 0 || c.Execution.RetriesPerURL > 5 || c.Execution.MaxAttempts < 1 || c.Execution.MaxAttempts > 64 {
 		return errors.New("下载尝试次数无效")
+	}
+	v, i := c.Selection.Video, c.Selection.Images
+	if v.Mode < VideoDefault || v.Mode > VideoCustom || i.Mode < ImageDefault || i.Mode > ImageCustom || c.Selection.LivePhoto < LiveDefault || c.Selection.LivePhoto > LiveMotion || v.HDR < HDRAny || v.HDR > HDRExclude {
+		return errors.New("媒体选择模式无效")
+	}
+	if v.MinLongEdge < 0 || v.MaxLongEdge < 0 || (v.MaxLongEdge > 0 && v.MinLongEdge > v.MaxLongEdge) || v.MinFPS < 0 || v.MaxFPS < 0 || (v.MaxFPS > 0 && v.MinFPS > v.MaxFPS) || math.IsNaN(v.MinFPS) || math.IsNaN(v.MaxFPS) || math.IsInf(v.MinFPS, 0) || math.IsInf(v.MaxFPS, 0) {
+		return errors.New("视频尺寸或帧率范围无效")
+	}
+	if i.FirstIndex < 0 || i.LastIndex < 0 || (i.LastIndex > 0 && i.FirstIndex > i.LastIndex) {
+		return errors.New("图片顺序范围无效")
+	}
+	if v.Mode == VideoCustom && len(v.CandidateIDs) == 0 {
+		return errors.New("自定义视频模式需要选择候选")
+	}
+	if i.Mode == ImageCustom && len(i.CandidateIDs) == 0 {
+		return errors.New("自定义图片模式需要选择候选")
+	}
+	if i.Mode == ImageScenes && len(i.Scenes) == 0 {
+		return errors.New("请选择图片 scene")
+	}
+	if err := validateNaming(c.Naming); err != nil {
+		return err
 	}
 	return nil
 }
@@ -100,6 +123,8 @@ func BuildPlan(detail notes.Detail, c Config, raw []byte) (Plan, error) {
 	n := detail.Note
 	p := Plan{NoteID: n.ID, SnapshotID: detail.Snapshot.ID, Title: n.Title, AuthorID: n.User.ID, AuthorName: n.User.Nickname, AccountID: detail.Snapshot.AccountID, Config: c, Items: []PlannedItem{}, Warnings: []string{}}
 	p.RelativeDirectory = filepath.Join(SafeName(n.User.Nickname, 32)+"_"+SafeName(n.User.ID, 28), SafeName(n.ID, 28)+"_"+SafeName(n.Title, 40))
+	p.RelativeDirectory = namedDirectory(detail, c.Naming, p.RelativeDirectory)
+	p.LivePairs = []LivePair{}
 	add := func(kind MediaKind, rep Representation, urls []string, size *int64, label string, body []byte) {
 		identity, _ := json.Marshal(struct {
 			Snapshot, Note string
@@ -130,47 +155,92 @@ func BuildPlan(detail notes.Detail, c Config, raw []byte) (Plan, error) {
 		name := label + "_" + key[:12] + "." + ext
 		if kind == MediaManifest {
 			name = "manifest.json"
+		} else if c.Naming.FileTemplate != "" {
+			values := baseNamingValues(detail)
+			values["media_kind"] = map[MediaKind]string{MediaVideo: "video", MediaImage: "image", MediaMotion: "motion", MediaPretty: "pretty", MediaRaw: "raw", MediaText: "text"}[kind]
+			values["variant_key"] = key[:12]
+			values["codec"] = rep.Codec
+			values["codec_group"] = rep.CodecGroup
+			if rep.ImageIndex != nil {
+				values["image_index"] = fmt.Sprintf("%03d", *rep.ImageIndex)
+			}
+			if rep.Width != nil && rep.Height != nil {
+				values["dimensions"] = fmt.Sprintf("%dx%d", *rep.Width, *rep.Height)
+			}
+			if rep.FPS != nil {
+				values["fps"] = strconv.FormatFloat(*rep.FPS, 'f', -1, 64)
+			}
+			base := SafeName(renderTemplate(c.Naming.FileTemplate, values), 120)
+			if !strings.Contains(base, key[:12]) {
+				base += "_" + key[:12]
+			}
+			name = base + "." + ext
 		}
 		p.Items = append(p.Items, PlannedItem{Sequence: len(p.Items) + 1, Kind: kind, AssetKey: key, Confidence: confidence, Representation: rep, RelativePath: filepath.Join(p.RelativeDirectory, name), URLs: urls, ExpectedBytes: size, Inline: body})
 	}
-	addStream := func(kind MediaKind, streams []xhsapi.VideoStream, index *int, label string) bool {
-		for _, s := range streams {
-			urls := URLs(s.URL, append([]string{s.MasterURL}, s.BackupURLs...)...)
-			if len(urls) == 0 {
-				continue
-			}
-			rep := Representation{CodecGroup: s.CodecGroup, Codec: s.Codec, Format: s.Format, Width: s.Width, Height: s.Height, FPS: s.FPS, ImageIndex: index}
-			add(kind, rep, urls, s.SizeBytes, label, nil)
-			return true
-		}
-		return false
+	selected, warnings, err := choose(Catalog(detail), c)
+	if err != nil {
+		return p, err
 	}
-	if c.Media.Video && n.Type == "video" {
-		if n.Video == nil || !addStream(MediaVideo, n.Video.Streams, nil, "video") {
-			p.Warnings = append(p.Warnings, "笔记没有可用主视频地址")
+	p.Warnings = append(p.Warnings, warnings...)
+	isVideo := n.Type == "video" || n.Video != nil
+	// Identical primary URLs represent one physical download; pair metadata can
+	// reference that asset from more than one image without duplicating links.
+	urlAssets := map[string]string{}
+	pairs := map[int]*LivePair{}
+	videoCount := 0
+	for _, candidate := range selected {
+		r := candidate.Representation
+		index := 0
+		if r.ImageIndex != nil {
+			index = *r.ImageIndex
 		}
+		if candidate.Kind == MediaVideo && !c.Media.Video || candidate.Kind == MediaMotion && !c.Media.LivePhotoMotion || candidate.Kind == MediaImage && ((isVideo && !c.Media.VideoCover) || (!isVideo && !c.Media.Images)) {
+			continue
+		}
+		key := urlAssets[candidate.URLs[0]]
+		if key == "" {
+			label := "video"
+			if candidate.Kind == MediaImage {
+				label = fmt.Sprintf("image_%03d", index)
+			}
+			if candidate.Kind == MediaMotion {
+				label = fmt.Sprintf("motion_%03d", index)
+			}
+			add(candidate.Kind, r, candidate.URLs, candidate.ExpectedBytes, label, nil)
+			item := &p.Items[len(p.Items)-1]
+			item.CandidateID = candidate.ID
+			// All candidate metadata participates in identity, including same-
+			// codec/same-dimension streams that differ in bitrate or provenance.
+			key = item.AssetKey
+			urlAssets[candidate.URLs[0]] = key
+		}
+		if candidate.Kind == MediaVideo {
+			videoCount++
+		}
+		if candidate.LivePhoto {
+			pair := pairs[index]
+			if pair == nil {
+				pair = &LivePair{ImageIndex: index, StaticKeys: []string{}, MotionKeys: []string{}}
+				pairs[index] = pair
+			}
+			if candidate.Kind == MediaImage {
+				pair.StaticKeys = appendUnique(pair.StaticKeys, key)
+			}
+			if candidate.Kind == MediaMotion {
+				pair.MotionKeys = appendUnique(pair.MotionKeys, key)
+			}
+		}
+	}
+	if isVideo && c.Media.Video && videoCount == 0 {
+		p.Warnings = append(p.Warnings, "没有符合配置的主视频候选")
 	}
 	for _, image := range n.Images {
 		index := image.Index + 1
-		if (n.Type != "video" && c.Media.Images) || (n.Type == "video" && c.Media.VideoCover) {
-			found := false
-			for _, v := range image.Variants {
-				urls := URLs(v.URL)
-				if len(urls) == 0 {
-					continue
-				}
-				rep := Representation{Scene: v.Scene, Format: v.Format, Width: v.Width, Height: v.Height, ImageIndex: &index}
-				add(MediaImage, rep, urls, nil, fmt.Sprintf("image_%03d", index), nil)
-				found = true
-				break
-			}
-			if !found {
-				p.Warnings = append(p.Warnings, fmt.Sprintf("图片 %d 没有可用地址", index))
-			}
-		}
-		if c.Media.LivePhotoMotion && (len(image.MotionStreams) > 0 || (image.LivePhoto != nil && *image.LivePhoto)) {
-			if !addStream(MediaMotion, image.MotionStreams, &index, fmt.Sprintf("motion_%03d", index)) {
-				p.Warnings = append(p.Warnings, fmt.Sprintf("LivePhoto %d 没有动态视频地址", index))
+		if pair := pairs[index]; pair != nil {
+			p.LivePairs = append(p.LivePairs, *pair)
+			if c.Media.LivePhotoMotion && c.Selection.LivePhoto != LiveStatic && len(pair.MotionKeys) == 0 {
+				p.Warnings = append(p.Warnings, fmt.Sprintf("LivePhoto %d 没有符合配置的动态流", index))
 			}
 		}
 	}
@@ -199,4 +269,13 @@ func BuildPlan(detail notes.Detail, c Config, raw []byte) (Plan, error) {
 	canonical, _ := json.Marshal(p)
 	p.Hash = digest(canonical)
 	return p, nil
+}
+
+func appendUnique(values []string, value string) []string {
+	for _, v := range values {
+		if v == value {
+			return values
+		}
+	}
+	return append(values, value)
 }

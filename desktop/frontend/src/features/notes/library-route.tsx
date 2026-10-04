@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Alert, Button, Card, Image, Space, Table, Tag, Typography } from 'antd';
 import { LinkOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -5,20 +6,24 @@ import { useNavigate } from 'react-router';
 import type { NoteSummary, NoteListInput } from '@/shared/contracts';
 import { listNotes } from './api';
 import { noteKindLabel, formatTime } from './labels';
+import { CreateDownloadDrawer } from '@/features/downloads/CreateDrawer';
 
 export function Component() {
   const navigate = useNavigate();
+  const [selected, setSelected] = useState<NoteSummary[]>([]);
+  const [batchOpen, setBatchOpen] = useState(false);
   const notes = useInfiniteQuery({ queryKey: ['notes'], staleTime: 0, initialPageParam: { limit: 50, before_at_ms: 0, before_id: '' } as NoteListInput,
     queryFn: ({ pageParam, signal }) => listNotes(pageParam, signal),
     getNextPageParam: page => page.has_more ? { limit: 50, before_at_ms: page.next_at_ms, before_id: page.next_id } : undefined });
   return <div className="page">
     <div className="page-toolbar"><div><Typography.Title level={2} style={{ marginTop: 0 }}>笔记库</Typography.Title>
       <Typography.Text type="secondary">已解析笔记和媒体快照保存在本机，可随时查看全部候选。</Typography.Text></div>
-      <Space><Button icon={<ReloadOutlined />} aria-label="刷新笔记" onClick={() => void notes.refetch()} /><Button type="primary" icon={<LinkOutlined />} onClick={() => void navigate('/parse')}>解析笔记</Button></Space>
+      <Space><Button disabled={!selected.length || selected.length > 200} onClick={() => setBatchOpen(true)}>下载已选 {selected.length || ''} 笔记</Button><Button icon={<ReloadOutlined />} aria-label="刷新笔记" onClick={() => void notes.refetch()} /><Button type="primary" icon={<LinkOutlined />} onClick={() => void navigate('/parse')}>解析笔记</Button></Space>
     </div>
     {notes.isError && <Alert type="error" title={notes.error.message} style={{ marginBottom: 16 }} />}
     <Card styles={{ body: { padding: 0 } }}>
       <Table<NoteSummary> rowKey="id" dataSource={notes.data?.pages.flatMap(page => page.items ?? []) ?? []} loading={notes.isPending} pagination={false} scroll={{ x: 850 }}
+        rowSelection={{ selectedRowKeys: selected.map(note => note.id), preserveSelectedRowKeys: true, onChange: (_keys, rows) => setSelected(rows.filter(Boolean)) }}
         locale={{ emptyText: '解析后的笔记会显示在这里' }} columns={[
           { title: '笔记', width: 370, render: (_v: unknown, note) => <div className="note-summary"><Image src={note.cover_url || undefined} width={56} height={68} preview={false} referrerPolicy="no-referrer" style={{ objectFit: 'cover', borderRadius: 8 }} />
             <div><Button type="link" className="note-title-link" onClick={() => void navigate(`/notes/${note.id}`)}>{note.title || '无标题笔记'}</Button>
@@ -31,5 +36,6 @@ export function Component() {
         ]} />
     </Card>
     {notes.hasNextPage && <div className="load-more"><Button loading={notes.isFetchingNextPage} onClick={() => void notes.fetchNextPage()}>加载更多</Button></div>}
+    <CreateDownloadDrawer open={batchOpen} onClose={() => setBatchOpen(false)} snapshotID="" batchSnapshotIDs={selected.map(note => note.snapshot_id)} title={`已选 ${selected.length} 条笔记`} />
   </div>;
 }

@@ -35,6 +35,11 @@ type Repository interface {
 	ResumeDownloadTask(context.Context, string) error
 	CoveredDownloadFiles(context.Context, Task, Item) ([]CoveredFile, error)
 	RecoverDownloads(context.Context) error
+	FindDownloadBatch(context.Context, string) (Batch, string, error)
+	CreateDownloadBatch(context.Context, Batch, string, string, []Plan) error
+	ListDownloadPresets(context.Context) ([]Preset, error)
+	SaveDownloadPreset(context.Context, Preset) error
+	DeleteDownloadPreset(context.Context, string) error
 }
 type activeTask struct {
 	mu         sync.Mutex
@@ -463,14 +468,15 @@ func (s *Service) manifest(ctx context.Context, t Task) ([]byte, error) {
 		files = append(files, entry{i.Sequence, i.Kind, i.Representation, i.State, i.Result, i.Failure})
 	}
 	return json.MarshalIndent(struct {
-		SchemaVersion int     `json:"schema_version"`
-		TaskID        string  `json:"task_id"`
-		NoteID        string  `json:"note_id"`
-		SnapshotID    string  `json:"snapshot_id"`
-		Title         string  `json:"title"`
-		AuthorID      string  `json:"author_id"`
-		Files         []entry `json:"files"`
-	}{1, t.ID, t.NoteID, t.SnapshotID, t.Title, t.AuthorID, files}, "", "  ")
+		SchemaVersion int        `json:"schema_version"`
+		TaskID        string     `json:"task_id"`
+		NoteID        string     `json:"note_id"`
+		SnapshotID    string     `json:"snapshot_id"`
+		Title         string     `json:"title"`
+		AuthorID      string     `json:"author_id"`
+		Files         []entry    `json:"files"`
+		LivePairs     []LivePair `json:"live_pairs"`
+	}{1, t.ID, t.NoteID, t.SnapshotID, t.Title, t.AuthorID, files, t.LivePairs}, "", "  ")
 }
 func (s *Service) GetTask(ctx context.Context, id string) (Task, error) {
 	t, err := s.repository.GetDownloadTask(ctx, id)

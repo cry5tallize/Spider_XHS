@@ -343,3 +343,82 @@ func TestDownloadFinalizeJournalRecoveryWithoutDuplicateHistory(t *testing.T) {
 		t.Fatal("recovery created duplicate history")
 	}
 }
+
+func TestDownloadBatchIsAtomicNoteBasedAndPresetRetainsConfiguration(t *testing.T) {
+	store := openTestStore(t)
+	fixture := mediafixture.NewFixture()
+	defer fixture.Close()
+	payloads := notePayloads(t)
+	details := []notes.Detail{}
+	for _, p := range payloads {
+		details = append(details, saveDownloadNote(t, store, fixture.Localize(p)))
+	}
+	s, err := downloads.NewService(context.Background(), store, mediahttp.New(), 2, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ctx := context.Background()
+	config := downloads.Defaults(t.TempDir())
+	config.Selection.Video.Mode = downloads.VideoAll
+	config.Selection.Images.Mode = downloads.ImageAll
+	ids := []string{details[0].Snapshot.ID, details[1].Snapshot.ID, details[0].Snapshot.ID}
+	request := downloads.CreateBatch{RequestID: "batch-create", SnapshotIDs: ids, Config: config}
+	b, err := s.CreateTasks(ctx, request)
+	if err != nil || len(b.TaskIDs) != 2 {
+		t.Fatal("batch not one task per unique note", err)
+	}
+	again, err := s.CreateTasks(ctx, request)
+	if err != nil || again.ID != b.ID {
+		t.Fatal("batch not idempotent")
+	}
+	for _, id := range b.TaskIDs {
+		task := waitDownload(t, s, id, downloads.Succeeded)
+		if task.BatchID != b.ID {
+			t.Fatal("batch relationship lost")
+		}
+	}
+	request.RequestID = "invalid-batch"
+	request.SnapshotIDs = []string{details[0].Snapshot.ID, "missing"}
+	if _, err = s.CreateTasks(ctx, request); err == nil {
+		t.Fatal("invalid snapshot accepted")
+	}
+	page, err := s.List(ctx, downloads.ListInput{Limit: 50}, false)
+	if err != nil || len(page.Items) != 2 {
+		t.Fatal("partially created invalid batch")
+	}
+	preset, err := s.SavePreset(ctx, downloads.SavePreset{Name: "all formats", Config: config})
+	if err != nil {
+		t.Fatal(err)
+	}
+	presets, err := s.ListPresets(ctx)
+	if err != nil || len(presets) != 1 || presets[0].Config.Selection.Video.Mode != downloads.VideoAll {
+		t.Fatal("preset selection not retained")
+	}
+	if err = s.DeletePreset(ctx, preset.ID); err != nil {
+		t.Fatal(err)
+	}
+	items, err := s.Items(ctx, b.TaskIDs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, item := range items {
+		if item.Kind == downloads.MediaManifest {
+			raw, e := os.ReadFile(filepath.Join(item.Result.Root, item.Result.RelativePath))
+			if e != nil {
+				t.Fatal(e)
+			}
+			var manifest map[string]json.RawMessage
+			if e = json.Unmarshal(raw, &manifest); e != nil {
+				t.Fatal(e)
+			}
+			if len(manifest["live_pairs"]) > 2 {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Fatal("LivePhoto pair choices not exported in manifest")
+	}
+}
