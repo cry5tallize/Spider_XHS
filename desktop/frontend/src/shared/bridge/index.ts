@@ -5,6 +5,8 @@ import * as FileService from '../../../bindings/github.com/cry5tallize/xhs_spide
 import * as AccountService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/accountservice';
 import * as NoteService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/noteservice';
 import * as DownloadService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/downloadservice';
+import * as ParsingService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/parsingservice';
+import type { StartCollection, CollectionItemQuery } from '../contracts';
 import type { DownloadConfig, CreateDownloadTask, DownloadListInput, DownloadEventBatch, DownloadChangesInput } from '../contracts';
 import type { StartParse, NoteListInput } from '../contracts';
 import type { UpdateGeneral, CreateAccount, UpdateAccount, ReplaceCookie } from '../contracts';
@@ -55,3 +57,14 @@ export const openDownloadDirectory = (id: string) => withSignal(DownloadService.
 export const getDownloadActive = (signal?: AbortSignal) => withSignal(DownloadService.GetActiveSnapshots(), signal);
 export const getDownloadChanges = (input: DownloadChangesInput, signal?: AbortSignal) => withSignal(DownloadService.GetChangesSince(input), signal);
 export const subscribeDownloads = (listener: (batch: DownloadEventBatch) => void) => Events.On('downloads:changed', event => listener(event.data));
+export const getCollectionDefaults = (signal?: AbortSignal) => withSignal(ParsingService.GetDefaultConfig(), signal);
+export const startCollection = (input: StartCollection) => withSignal(ParsingService.Start(input));
+export const listCollections = (signal?: AbortSignal) => withSignal(ParsingService.List(), signal);
+export const getCollection = (id: string, signal?: AbortSignal) => withSignal(ParsingService.Get(id), signal);
+export const getCollectionSources = (id: string, signal?: AbortSignal) => withSignal(ParsingService.Sources(id), signal);
+export const getCollectionItems = (input: CollectionItemQuery, signal?: AbortSignal) => withSignal(ParsingService.Items(input), signal);
+export const getCollectionOrigins = (id: string, signal?: AbortSignal) => withSignal(ParsingService.Origins(id), signal);
+export const pauseCollection = (id: string) => withSignal(ParsingService.Pause(id));
+export const cancelCollection = (id: string) => withSignal(ParsingService.Cancel(id));
+export const resumeCollection = (id: string) => withSignal(ParsingService.Resume(id));
+export const retryCollection = (id: string) => withSignal(ParsingService.RetryFailed(id));

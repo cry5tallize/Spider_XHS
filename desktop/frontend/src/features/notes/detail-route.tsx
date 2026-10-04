@@ -34,7 +34,7 @@ export function Component() {
   const warnings = snapshot.warnings ?? [];
   return <div className="page note-detail-page">
     <div className="page-toolbar"><Button type="text" icon={<ArrowLeftOutlined />} onClick={() => void navigate('/notes')}>笔记库</Button>
-      <Space><Button icon={<FileTextOutlined />} onClick={() => setPrettyOpen(true)}>Pretty 数据</Button><Button onClick={() => setRawOpen(true)}>原始响应</Button><Button type="primary" icon={<DownloadOutlined />} onClick={() => setDownloadOpen(true)}>下载笔记</Button></Space>
+      <Space><Button icon={<FileTextOutlined />} onClick={() => setPrettyOpen(true)}>Pretty 数据</Button><Button disabled={!snapshot.raw_available} onClick={() => setRawOpen(true)}>原始响应</Button><Button type="primary" icon={<DownloadOutlined />} onClick={() => setDownloadOpen(true)}>下载笔记</Button></Space>
     </div>
     <Typography.Title level={2} style={{ marginTop: 0 }}>{note.title || '无标题笔记'}</Typography.Title>
     <Space wrap style={{ marginBottom: 20 }}><Tag color="blue">{note.type === 'video' ? '视频笔记' : note.type === 'normal' ? '图文笔记' : note.type}</Tag>

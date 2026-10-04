@@ -98,6 +98,7 @@ export interface Snapshot {
     "warnings": string[] | null;
     "fetched_at_ms": number;
     "raw_sha256": string;
+    "raw_available": boolean;
 }
 
 export interface StartParse {

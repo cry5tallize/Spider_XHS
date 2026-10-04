@@ -24,6 +24,11 @@ func (p AccountProbe) CheckAccount(ctx context.Context, id string) (accounts.Ide
 		return accounts.Identity{}, accounts.Error, 0, err
 	}
 	defer lease.Release()
+	done, err := lease.Request()
+	if err != nil {
+		return accounts.Identity{}, accounts.Error, lease.Version, err
+	}
+	defer done()
 	response, err := lease.Client.GetMe(lease.Context)
 	if err != nil {
 		if errors.Is(context.Cause(lease.Context), accounts.ErrChanged) {

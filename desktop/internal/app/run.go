@@ -55,6 +55,7 @@ func Run(assets fs.FS) (err error) {
 			application.NewService(bridge.NewSettingsService(runtime)),
 			application.NewService(bridge.NewAccountService(runtime)),
 			application.NewService(bridge.NewNoteService(runtime)),
+			application.NewService(bridge.NewParsingService(runtime)),
 			application.NewService(bridge.NewDownloadService(runtime, func(path string) error {
 				path = filepath.ToSlash(path)
 				if !strings.HasPrefix(path, "/") {

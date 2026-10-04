@@ -1,6 +1,6 @@
 # 实施路线与进度台账
 
-更新时间：2026-10-04。当前阶段：P1、P2a、P2b 已提交，P2c 笔记下载/实时进度/历史基础闭环已实现；下一阶段 P3 批量/用户解析与完整媒体选择。每个子阶段独立命名提交。原生视觉交互与干净检出复验留在 QA-02，不重复扩展当前阶段测试。
+更新时间：2026-10-05。当前阶段：P3a 批量/用户解析已实现，接下来 P3b 全部媒体与自定义候选、批量笔记下载。每个子阶段独立命名提交。原生视觉交互与干净检出复验留在 QA-02。
 
 ## 进度维护规则
 
@@ -43,9 +43,9 @@ P2 可以交付早期可测试版本，但仍需明确其只覆盖默认媒体�
 | ACC-02 | P2a→P2b | 手动 GetMe 与解析共享 client/lease；按账号/凭据版本复用，轮换/禁用/删除取消、引用归零关闭；拒绝过时响应 | ACC-01 | DONE |
 | ACC-03 | P3 | 固定/来源分配/受控轮询、账号冷却、禁用取消；每次切换可追踪 | ACC-02 | TODO |
 | PAR-01 | P2b | 详情适配、全部候选/Partial warnings、单条 StartParse/GetParseJob/CancelParse、笔记/快照/原文查询，重启保留结果 | ACC-02、DB-02 | DONE |
-| PAR-02 | P3 | 文本输入提取/短链展开/批量幂等/有界队列/部分失败/失败重试 | PAR-01 | TODO |
-| PAR-03 | P3 | 用户轻量列表适配、逐页事务/游标恢复/背压、单独 note token 补详情、多用户 | PAR-02 | TODO |
-| PAR-04 | P3 | 类型/日期/范围/cache/raw 配置与警告；达到上限不会伪报全量 | PAR-03 | TODO |
+| PAR-02 | P3a | 分享文本/UTF-8/短链展开、批量幂等及笔记去重、来源记录、持久队列、暂停恢复和失败项重试 | PAR-01 | DONE |
+| PAR-03 | P3a | 多用户发布笔记轻量列表、分页/游标事务及背压、各 note 自己的 token 补全，重启可恢复 | PAR-02 | DONE |
+| PAR-04 | P3a | 类型/日期/标题/LivePhoto/cache/raw 及页/数量上限；Limited/部分失败明确回传 | PAR-03 | DONE |
 | DL-01 | P2→P3 | 纯 Best Planner、配置校验、LivePhoto 相邻配对/辅助输出/计划预览已实现；All/Custom/模板在 P3 | PAR-01 | DOING |
 | DL-02 | P2c | 流式单连接/256 KiB buffer、长度/类型/SHA 校验、Root 临时文件/安全覆盖、journal/结算入库；无整文件内存缓存 | DL-01、DB-02 | DONE |
 | DL-03 | P2→P4 | 笔记 pool/DB 队列/同笔记 claim/项串行、暂停恢复取消、热更新并发已实现；公平/限速/退避释放配额在 P4 | DL-02、LIFE-01 | DOING |
@@ -102,6 +102,8 @@ desktopcheck 计划提供独立子命令：`db`（临时库/迁移）、`parse -
 | 2026-10-04 | P2a 提交 | 多账号 Cookie 配置已独立提交 | `eaf12cc` |
 | 2026-10-04 | P2b / PAR-01、ACC-02；DB-02/FE-03 子范围，负责人 Codex | 迁移 0003：作者/笔记投影、不可变全媒体快照、解析作业；集中 notes/parsing SQL，完成/取消事务守卫及账号版本守卫；root 持有 2 个解析 worker + 32 个等待槽，45s 作业超时，重启/退出标 Interrupted。版本化 lease 共用 GetMe/详情，旧请求取消并等最后引用释放后关闭，缓存命中不重复解密。前端懒加载解析/笔记库/详情，视频动态流/图片全部 Scene/LivePhoto 表、快照切换、按需原文。CLI parse/inspect 离线入库与重启查询。6 项新增离线检查及前端 lint/typecheck/生产构建、Windows `wails3 build` 通过；样本全部媒体/原文/警告保留，取消后迟到提交回滚。无真实 XHS 请求。下载、批量/用户解析、访问参数加密持久化和事件汇聚尚未实现 | P2b 命名提交：`feat(desktop): persist parsed notes and media snapshots` |
 | 2026-10-04 | P2b 提交 | 笔记解析与快照已独立提交 | `76043e8` |
+| 2026-10-04 | 数据目录修正提交 | 应用固定可执行文件旁 data，下载默认 data/downloads，WebView data/webview，设置页恢复默认 | `0d8f0f3` |
+| 2026-10-05 | P3a / PAR-02～04、ACC-03/DB-02/FE-04 子范围，负责人 Codex | 迁移 0005、集中 parse_groups SQL；批量/用户作业、来源与项及来源页码、加密访问上下文；游标/发现项事务，状态/账号版本守卫；完整详情补全/筛选/缓存/raw、固定/按来源分配账号和全局/每账号 API 配额；解析三入口及结果页。4项离线检查（去重/来源/失败项重试、用户两页/各自token、暂停重启恢复游标、限额/raw）和 typecheck/lint/Windows 构建通过；CLI collect fixture 3条笔记2页成功，无真实XHS请求。仍待全部候选下载、批量下载配置/预设、统一解析事件与自动账号冷却策略 | P3a 提交：`feat(desktop): collect batch and user notes durably` |
 | 2026-10-04 | P2c 提交 | 下载任务、实时进度及历史已独立提交 | `003ec53` |
 | 2026-10-04 | P2c / DL-02、HIS-01、FE-03；DL-01/03/05、EVT-01、HIS-02、DB-02/LIFE-01 子范围，负责人 Codex | 迁移 0004，集中并缓存 downloads SQL；Best planner/配置/预览；有界笔记并发、note/path claim、项串行；流式/校验/安全替换/journal；暂停/取消/原任务恢复/失败项重试；逐项真实文件过滤；typed 合并事件/前端root订阅与重同步；任务/历史懒加载页面和目录定位；数据目录独占锁。5 项关键新增离线检查（并发/串行/历史与缺文件、暂停恢复取消、rename后DB未提交恢复、备用/覆盖/拒绝错误页、锁释放）通过，前端 typecheck/lint/生产构建及 Windows `wails3 build` 通过。CLI本机服务器完成视频3项、LivePhoto18项、图文3项；未访问真实小红书。每一任务一历史，恢复不重复创建。高级选择/批量、断点/限速/刷新及跨快照身份留 P3/P4，原生交互留 QA-02 | P2c 命名提交：`feat(desktop): download note tasks with progress and history` |
 

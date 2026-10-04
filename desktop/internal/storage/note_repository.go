@@ -17,6 +17,25 @@ func nullString(s string) any {
 	return s
 }
 func (s *Store) SaveNoteSnapshot(ctx context.Context, job string, d notes.Detail, p notes.Payload) error {
+	tx, err := s.writer.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = saveNoteSnapshotTx(ctx, tx, d, p); err != nil {
+		return err
+	}
+	if job != "" {
+		at := d.Snapshot.FetchedAtMS
+		r, e := tx.ExecContext(ctx, query("parsing/complete"), d.Snapshot.ID, at, at, job)
+		if err = accountResult(r, e, notes.ErrConflict); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func saveNoteSnapshotTx(ctx context.Context, tx *sql.Tx, d notes.Detail, p notes.Payload) error {
 	pretty, err := json.Marshal(d.Note)
 	if err != nil {
 		return err
@@ -29,11 +48,6 @@ func (s *Store) SaveNoteSnapshot(ctx context.Context, job string, d notes.Detail
 	if err != nil {
 		return err
 	}
-	tx, err := s.writer.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
 	if d.Snapshot.AccountID != "" {
 		account, err := scanAccount(tx.QueryRowContext(ctx, query("accounts/get"), d.Snapshot.AccountID))
 		if err != nil {
@@ -56,20 +70,18 @@ func (s *Store) SaveNoteSnapshot(ctx context.Context, job string, d notes.Detail
 		return err
 	}
 	var version any
+	raw := p.Raw
+	if len(raw) == 0 {
+		raw = []byte("null")
+	}
 	if d.Snapshot.AccountID != "" {
 		version = d.Snapshot.CredentialVersion
 	}
 	if _, err = tx.ExecContext(ctx, query("notes/create_snapshot"), d.Snapshot.ID, d.Snapshot.NoteID, d.Snapshot.ParserVersion, nullString(d.Snapshot.AccountID), version,
-		string(pretty), string(p.Raw), d.Snapshot.RawSHA256, string(warnings), at); err != nil {
+		string(pretty), string(raw), d.Snapshot.RawSHA256, string(warnings), at); err != nil {
 		return err
 	}
-	if job != "" {
-		r, err := tx.ExecContext(ctx, query("parsing/complete"), d.Snapshot.ID, at, at, job)
-		if err = accountResult(r, err, notes.ErrConflict); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
+	return nil
 }
 func (s *Store) ListNotes(ctx context.Context, input notes.ListInput) (notes.Page, error) {
 	rows, err := s.reader.QueryContext(ctx, query("notes/list"), input.BeforeAtMS, input.BeforeAtMS, input.BeforeID, input.Limit+1)
@@ -101,6 +113,7 @@ func scanDetail(row scanner) (notes.Detail, error) {
 	var d notes.Detail
 	var pretty, warnings string
 	err := row.Scan(&d.Snapshot.ID, &d.Snapshot.NoteID, &d.Snapshot.AccountID, &d.Snapshot.CredentialVersion, &d.Snapshot.ParserVersion, &warnings, &d.Snapshot.FetchedAtMS, &d.Snapshot.RawSHA256, &pretty)
+	d.Snapshot.RawAvailable = d.Snapshot.RawSHA256 != ""
 	if errors.Is(err, sql.ErrNoRows) {
 		return d, notes.ErrNotFound
 	}
@@ -134,6 +147,7 @@ func (s *Store) ListSnapshots(ctx context.Context, id string) ([]notes.Snapshot,
 		if err = json.Unmarshal([]byte(warnings), &n.Warnings); err != nil {
 			return nil, err
 		}
+		n.RawAvailable = n.RawSHA256 != ""
 		out = append(out, n)
 	}
 	return out, rows.Err()
@@ -143,6 +157,9 @@ func (s *Store) GetRawSnapshot(ctx context.Context, id string) (string, error) {
 	err := s.reader.QueryRowContext(ctx, query("notes/get_raw"), id).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = notes.ErrNotFound
+	}
+	if err == nil && raw == "null" {
+		return "", notes.ErrRawUnavailable
 	}
 	return raw, err
 }

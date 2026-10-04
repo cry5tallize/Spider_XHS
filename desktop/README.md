@@ -2,7 +2,7 @@
 
 模块：`github.com/cry5tallize/xhs_spider_desktop`。Wails 3 + React + Ant Design，SQLite 使用 modernc pure Go driver。
 
-P2 单笔记闭环已实现：多账号 Cookie → 解析/笔记库 → 下载配置与计划预览 → 笔记并发、笔记内串行 → 实时进度 → 笔记历史与文件明细。支持暂停/恢复/取消、失败项重试、同目录历史过滤、默认安全覆盖。Cookie 使用 Windows DPAPI；下载 CDN 不携带账号 Cookie。下一阶段 P3 补批量/用户解析、全部/自定义媒体配置。
+P2 单笔记闭环及 P3a 批量/用户解析已实现。解析支持分享文本、短链接、UTF-8 导入、固定/按来源分配账号、逐用户分页、筛选/缓存/原文选项、暂停恢复及失败项重试。下载仍支持默认 Best、笔记并发/项串行、实时进度与笔记历史；下一子阶段 P3b 补全部/自定义媒体及批量下载。
 
 ## 运行
 
@@ -16,7 +16,7 @@ wails3 build
 
 开发版与正式版统一使用可执行文件旁的 `data` 目录，与启动工作目录无关。例如 `bin\xhs-desktop.exe` 对应 `bin\data\desktop.sqlite`、`bin\data\webview`。未设置下载位置时使用 `bin\data\downloads`；设置页可另选目录，也可点击“恢复默认”并保存。
 
-应用不读取 `XHS_DESKTOP_DATA_DIR`，不再使用 AppData/不同构建配置的独立目录。已有 AppData 数据不会自动搬迁或删除；需要保留时，关闭应用后将原数据目录内容搬到可执行文件旁的 data，再启动应用。
+应用不读取 `XHS_DESKTOP_DATA_DIR`，不使用 AppData/不同构建配置的独立目录，不包含数据搬迁逻辑。
 
 下载并发设置指同时执行的笔记数；同一笔记的下载项始终串行。SQLite/DTO 时间戳为毫秒，应用枚举为 Go int8，前端直接使用生成枚举。SQL 全部在 `internal/storage/sql`。
 
@@ -34,12 +34,13 @@ go run ./cmd/desktopcheck inspect -data-dir ./.task/local-check
 # 仅用本机媒体服务器完成视频/LivePhoto/图文三类下载
 go run ./cmd/desktopcheck download -fixture-server -data-dir ./.task/download-check
 go run ./cmd/desktopcheck inspect -history -data-dir ./.task/download-check
+go run ./cmd/desktopcheck collect -fixture -mode users -data-dir ./.task/parse-check -out ./.task/users.json
 go test ./...
 go vet ./...
 ```
 
 frontend 中使用 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`。详细计划与状态：[docs/README.md](docs/README.md)、[阶段台账](docs/07-roadmap-and-progress.md)。
 
-离线导入/查看使用真实 SQLite，不使用 Cookie；download fixture 模式仅访问本机临时服务器。详情见 [desktopcheck](cmd/desktopcheck/README.md)。UI 在“解析笔记”填写完整链接或笔记 ID、选择账号后才执行真实 API 请求。当前不支持短链接、分享文本、批量或用户主页解析；这些在 P3 实现。
+离线 import/collect 使用真实 SQLite 与本地样本；collect 创建明确标注的合成账号，无真实 Cookie 或请求。download fixture 模式仅访问本机临时服务器。详情见 [desktopcheck](cmd/desktopcheck/README.md)。UI 由用户明确开始解析后才执行真实 API 请求。用户模式抓取发布笔记，达到限额显示“仍可能有更多”；更新 Cookie 后需新建解析作业，旧作业不会自动换用凭据。
 
 原生自动化工具本次不可用，原生视觉和窗口交互留待手工复验；已完成 Windows 构建/启动、组件回归和真实 Wails 服务持久化验证。常规开发完成必要检查后即提交，额外全量复验在 QA 阶段进行。

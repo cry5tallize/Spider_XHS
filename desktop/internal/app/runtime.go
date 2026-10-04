@@ -10,6 +10,7 @@ import (
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/accounts"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/parsing"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/settings"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/datalock"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
@@ -38,6 +39,9 @@ type Runtime struct {
 	notes         *notes.Service
 	sessions      *xhsadapter.Sessions
 	downloads     *downloads.Service
+	parsing       *parsing.Service
+	collection    *xhsadapter.CollectionFetcher
+	parseFetcher  parsing.Fetcher
 	dataLock      *datalock.Lock
 	emitDownloads func(downloads.EventBatch)
 	cancel        context.CancelFunc
@@ -47,12 +51,23 @@ type Runtime struct {
 	commands      sync.WaitGroup
 }
 
-func NewRuntime(profile paths.Profile, directory string) (*Runtime, error) {
+type Option func(*Runtime)
+
+// WithParsingFetcher supports explicitly invoked offline CLI fixtures.
+func WithParsingFetcher(fetcher parsing.Fetcher) Option {
+	return func(r *Runtime) { r.parseFetcher = fetcher }
+}
+
+func NewRuntime(profile paths.Profile, directory string, options ...Option) (*Runtime, error) {
 	p, err := paths.Resolve(profile, directory)
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{profile: profile, paths: p, state: dto.StateUnknown}, nil
+	r := &Runtime{profile: profile, paths: p, state: dto.StateUnknown}
+	for _, option := range options {
+		option(r)
+	}
+	return r, nil
 }
 
 func (r *Runtime) Start(parent context.Context) error {
@@ -88,7 +103,8 @@ func (r *Runtime) Start(parent context.Context) error {
 		return errors.Join(fmt.Errorf("initialize settings: %w", err), store.Close())
 	}
 	probe := &xhsadapter.AccountProbe{}
-	r.accounts = accounts.NewService(store, secrets.New(), probe)
+	protector := secrets.New()
+	r.accounts = accounts.NewService(store, protector, probe)
 	r.sessions = xhsadapter.NewSessions(ctx, r.accounts)
 	probe.Sessions = r.sessions
 	r.accounts.SetInvalidator(r.sessions.Invalidate)
@@ -104,12 +120,23 @@ func (r *Runtime) Start(parent context.Context) error {
 		r.state = dto.StateFailed
 		return errors.Join(err, r.notes.Close(), r.sessions.Close(), store.Close())
 	}
+	r.collection = xhsadapter.NewCollectionFetcher(r.sessions)
+	fetcher := r.parseFetcher
+	if fetcher == nil {
+		fetcher = r.collection
+	}
+	r.parsing, err = parsing.NewService(ctx, store, r.accounts, protector, fetcher)
+	if err != nil {
+		cancel()
+		r.state = dto.StateFailed
+		return errors.Join(err, r.collection.Close(), r.notes.Close(), r.sessions.Close(), store.Close())
+	}
 	executor := mediahttp.New()
 	r.downloads, err = downloads.NewService(ctx, store, executor, general.MaxConcurrentNotes, r.emitDownloads)
 	if err != nil {
 		cancel()
 		r.state = dto.StateFailed
-		return errors.Join(err, executor.Close(), r.notes.Close(), r.sessions.Close(), store.Close())
+		return errors.Join(err, executor.Close(), r.parsing.Close(), r.collection.Close(), r.notes.Close(), r.sessions.Close(), store.Close())
 	}
 	r.downloads.SetOutputDirectoryResolver(r.resolveOutputDirectory)
 	r.store, r.settings, r.state = store, service, dto.StateReady
@@ -130,6 +157,12 @@ func (r *Runtime) Close() error {
 		if r.downloads != nil {
 			r.closeErr = errors.Join(r.closeErr, r.downloads.Close())
 		}
+		if r.parsing != nil {
+			r.closeErr = errors.Join(r.closeErr, r.parsing.Close())
+		}
+		if r.collection != nil {
+			r.closeErr = errors.Join(r.closeErr, r.collection.Close())
+		}
 		if r.notes != nil {
 			r.closeErr = errors.Join(r.closeErr, r.notes.Close())
 		}
@@ -146,6 +179,8 @@ func (r *Runtime) Close() error {
 		r.mu.Lock()
 		r.settings, r.accounts, r.notes, r.sessions, r.state = nil, nil, nil, nil, dto.StateClosed
 		r.downloads = nil
+		r.parsing = nil
+		r.collection = nil
 		r.mu.Unlock()
 	})
 	return r.closeErr
@@ -212,6 +247,15 @@ func (r *Runtime) WithNotes(caller context.Context, call func(context.Context, *
 	}
 	defer done()
 	return call(ctx, r.notes)
+}
+
+func (r *Runtime) WithParsing(caller context.Context, call func(context.Context, *parsing.Service) error) error {
+	ctx, done, err := r.beginCommand(caller)
+	if err != nil {
+		return err
+	}
+	defer done()
+	return call(ctx, r.parsing)
 }
 
 // SetDownloadEmitter is wired before Start; CLI runtimes leave it nil.

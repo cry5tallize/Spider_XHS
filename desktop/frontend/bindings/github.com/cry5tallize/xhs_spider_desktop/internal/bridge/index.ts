@@ -6,6 +6,7 @@ import * as AppService from "./appservice.js";
 import * as DownloadService from "./downloadservice.js";
 import * as FileService from "./fileservice.js";
 import * as NoteService from "./noteservice.js";
+import * as ParsingService from "./parsingservice.js";
 import * as SettingsService from "./settingsservice.js";
 export {
     AccountService,
@@ -13,5 +14,6 @@ export {
     DownloadService,
     FileService,
     NoteService,
+    ParsingService,
     SettingsService
 };

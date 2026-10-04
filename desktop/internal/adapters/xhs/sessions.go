@@ -14,12 +14,13 @@ type CookieSource interface {
 	ReadCookie(context.Context, string) (string, int64, error)
 }
 type sessionEntry struct {
-	client  *xhsapi.Client
-	version int64
-	ctx     context.Context
-	cancel  context.CancelCauseFunc
-	refs    int
-	retired bool
+	client      *xhsapi.Client
+	version     int64
+	ctx         context.Context
+	cancel      context.CancelCauseFunc
+	refs        int
+	retired     bool
+	requestSlot chan struct{}
 }
 
 // Sessions owns cached clients. Retirement cancels requests immediately but
@@ -34,18 +35,21 @@ type Sessions struct {
 	closeErr  error
 	closeOnce sync.Once
 	newClient func(string) (*xhsapi.Client, error)
+	requests  chan struct{}
 }
 type Lease struct {
-	Client  *xhsapi.Client
-	Context context.Context
-	Version int64
-	release func()
-	once    sync.Once
+	Client      *xhsapi.Client
+	Context     context.Context
+	Version     int64
+	release     func()
+	once        sync.Once
+	requestSlot chan struct{}
+	globalSlot  chan struct{}
 }
 
 func (l *Lease) Release() { l.once.Do(l.release) }
 func NewSessions(ctx context.Context, source CookieSource) *Sessions {
-	return &Sessions{ctx: ctx, source: source, entries: make(map[string]*sessionEntry), newClient: func(cookie string) (*xhsapi.Client, error) { return xhsapi.NewClient(cookie, xhsapi.Options{}) }}
+	return &Sessions{ctx: ctx, source: source, entries: make(map[string]*sessionEntry), requests: make(chan struct{}, 2), newClient: func(cookie string) (*xhsapi.Client, error) { return xhsapi.NewClient(cookie, xhsapi.Options{}) }}
 }
 func (s *Sessions) retire(e *sessionEntry, cause error) {
 	if e.retired {
@@ -99,14 +103,14 @@ func (s *Sessions) Acquire(caller context.Context, id string) (*Lease, error) {
 			return nil, errors.New("无法创建账号会话，请更新 Cookie")
 		}
 		ctx, cancel := context.WithCancelCause(s.ctx)
-		e = &sessionEntry{client: client, version: version, ctx: ctx, cancel: cancel}
+		e = &sessionEntry{client: client, version: version, ctx: ctx, cancel: cancel, requestSlot: make(chan struct{}, 1)}
 		s.entries[id] = e
 	}
 	e.refs++
 	s.leases.Add(1)
 	ctx, cancel := context.WithCancelCause(caller)
 	stop := context.AfterFunc(e.ctx, func() { cancel(context.Cause(e.ctx)) })
-	return &Lease{Client: e.client, Context: ctx, Version: e.version, release: func() {
+	return &Lease{Client: e.client, Context: ctx, Version: e.version, requestSlot: e.requestSlot, globalSlot: s.requests, release: func() {
 		stop()
 		cancel(context.Canceled)
 		s.mu.Lock()
@@ -117,6 +121,29 @@ func (s *Sessions) Acquire(caller context.Context, id string) (*Lease, error) {
 		s.mu.Unlock()
 		s.leases.Done()
 	}}, nil
+}
+
+// Request serializes APIs per credential session and caps all API calls at two.
+// Waiting holds only a lease, and cancellation also interrupts the wait.
+func (l *Lease) Request() (func(), error) {
+	select {
+	case <-l.Context.Done():
+		return nil, l.Context.Err()
+	case l.requestSlot <- struct{}{}:
+	}
+	select {
+	case <-l.Context.Done():
+		<-l.requestSlot
+		return nil, l.Context.Err()
+	case l.globalSlot <- struct{}{}:
+	}
+	var once sync.Once
+	release := func() { once.Do(func() { <-l.globalSlot; <-l.requestSlot }) }
+	if err := l.Context.Err(); err != nil {
+		release()
+		return nil, err
+	}
+	return release, nil
 }
 func (s *Sessions) Close() error {
 	s.closeOnce.Do(func() {

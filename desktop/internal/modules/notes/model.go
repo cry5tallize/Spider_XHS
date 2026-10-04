@@ -43,10 +43,11 @@ const (
 )
 
 var (
-	ErrNotFound  = errors.New("笔记、快照或解析作业不存在")
-	ErrConflict  = errors.New("解析状态已变更")
-	ErrQueueFull = errors.New("解析队列已满，请稍后重试")
-	ErrClosing   = errors.New("解析服务正在关闭")
+	ErrNotFound       = errors.New("笔记、快照或解析作业不存在")
+	ErrConflict       = errors.New("解析状态已变更")
+	ErrQueueFull      = errors.New("解析队列已满，请稍后重试")
+	ErrClosing        = errors.New("解析服务正在关闭")
+	ErrRawUnavailable = errors.New("此快照未保存原始响应")
 )
 
 type Failure struct {
@@ -105,6 +106,7 @@ type Snapshot struct {
 	Warnings          []string `json:"warnings"`
 	FetchedAtMS       int64    `json:"fetched_at_ms"`
 	RawSHA256         string   `json:"raw_sha256"`
+	RawAvailable      bool     `json:"raw_available"`
 }
 type Detail struct {
 	Snapshot Snapshot    `json:"snapshot"`

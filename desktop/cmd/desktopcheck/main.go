@@ -26,6 +26,9 @@ func main() {
 }
 
 func run(args []string) (err error) {
+	if len(args) > 0 && args[0] == "collect" {
+		return runCollect(args[1:])
+	}
 	if len(args) > 0 && args[0] == "download" {
 		return runDownload(args[1:])
 	}

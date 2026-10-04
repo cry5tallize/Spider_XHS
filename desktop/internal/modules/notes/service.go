@@ -3,8 +3,6 @@ package notes
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"log/slog"
 	"strings"
@@ -80,7 +78,7 @@ func (s *Service) StartParse(ctx context.Context, input StartParse) (ParseJob, e
 	}
 	ref, err := xhsapi.ParseNoteURL(input.Input)
 	if err != nil {
-		return ParseJob{}, errors.New("请输入完整的小红书笔记链接或 24 位笔记 ID；短链接将在批量解析阶段支持")
+		return ParseJob{}, errors.New("请输入完整的小红书笔记链接或 24 位笔记 ID；短链接可使用批量解析")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -194,9 +192,7 @@ func (s *Service) save(ctx context.Context, job string, p Payload) (Detail, erro
 	if p.Warnings == nil {
 		p.Warnings = []string{}
 	}
-	hash := sha256.Sum256(p.Raw)
-	d := Detail{Note: p.Note, Snapshot: Snapshot{ID: rand.Text(), NoteID: p.Note.ID, AccountID: p.AccountID, CredentialVersion: p.CredentialVersion,
-		ParserVersion: 1, Warnings: p.Warnings, FetchedAtMS: time.Now().UnixMilli(), RawSHA256: hex.EncodeToString(hash[:])}}
+	d := NewSnapshot(p)
 	if err := s.repository.SaveNoteSnapshot(ctx, job, d, p); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return Detail{}, err

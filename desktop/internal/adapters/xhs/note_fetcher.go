@@ -19,6 +19,11 @@ func (f NoteFetcher) FetchNote(ctx context.Context, account string, ref xhsapi.N
 		return notes.Payload{}, &notes.Failure{Kind: notes.ErrorAccount, Message: "账号不可用，请检查 Cookie 或启用状态"}
 	}
 	defer lease.Release()
+	done, err := lease.Request()
+	if err != nil {
+		return notes.Payload{}, requestFailure(lease.Context, err)
+	}
+	defer done()
 	response, err := lease.Client.GetNoteByID(lease.Context, ref)
 	if err != nil {
 		if errors.Is(context.Cause(lease.Context), accounts.ErrChanged) {
@@ -53,6 +58,34 @@ func (f NoteFetcher) FetchNote(ctx context.Context, account string, ref xhsapi.N
 		}
 	}
 	return notes.Payload{}, &notes.Failure{Kind: notes.ErrorResponse, Message: "响应未包含目标笔记；请检查链接或账号权限"}
+}
+
+func requestFailure(ctx context.Context, err error) *notes.Failure {
+	if errors.Is(context.Cause(ctx), accounts.ErrChanged) {
+		return &notes.Failure{Kind: notes.ErrorAccount, Message: "账号配置已变更，请创建新的解析作业"}
+	}
+	f := &notes.Failure{Kind: notes.ErrorNetwork, Message: "请求失败，请检查网络后重试", Retryable: true}
+	var apiErr *xhsapi.APIError
+	if errors.As(err, &apiErr) {
+		f.HTTPStatus = apiErr.StatusCode
+		f.UpstreamCode = apiErr.Code
+		f.Kind = notes.ErrorResponse
+		f.Message = fmt.Sprintf("小红书未返回可用数据（HTTP %d，code %d）", apiErr.StatusCode, apiErr.Code)
+		switch apiErr.StatusCode {
+		case 401:
+			f.Kind = notes.ErrorUnauthorized
+			f.Message = "Cookie 已失效，请更新后新建作业"
+			f.Retryable = false
+		case 403:
+			f.Kind = notes.ErrorRestricted
+			f.Message = "账号访问受限，请稍后重试"
+			f.Retryable = false
+		case 429:
+			f.Kind = notes.ErrorRateLimited
+			f.Message = "请求过于频繁，作业已暂停"
+		}
+	}
+	return f
 }
 
 // Warnings preserves every field-path warning instead of discarding partial results.
