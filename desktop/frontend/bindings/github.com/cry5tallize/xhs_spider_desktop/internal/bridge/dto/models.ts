@@ -14,6 +14,7 @@ export interface Bootstrap {
     "profile": paths$0.Profile;
     "state": RuntimeState;
     "data_directory": string;
+    "default_download_directory": string;
     "schema_version": number;
     "settings": settings$0.General;
 }

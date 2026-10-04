@@ -9,7 +9,6 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"io/fs"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -17,7 +16,9 @@ import (
 
 // Construction is side-effect-free until Wails selects the single instance.
 func Run(assets fs.FS) (err error) {
-	runtime, err := NewRuntime(buildProfile, os.Getenv("XHS_DESKTOP_DATA_DIR"))
+	// The desktop app always owns <executable>/data. Explicit overrides in
+	// NewRuntime are reserved for offline CLI checks and isolated tests.
+	runtime, err := NewRuntime(buildProfile, "")
 	if err != nil {
 		return err
 	}
@@ -75,7 +76,8 @@ func Run(assets fs.FS) (err error) {
 				}
 			},
 		},
-		Mac: application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: true},
+		Mac:     application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: true},
+		Windows: application.WindowsOptions{WebviewUserDataPath: runtime.paths.WebviewDirectory},
 	})
 	mainWindow.Store(wails.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name: "main", Title: Name, Width: 1200, Height: 800, MinWidth: 960, MinHeight: 640,

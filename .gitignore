@@ -5,6 +5,7 @@ node_modules/
 /desktop/.task/
 /desktop/test-output/
 /desktop/out/
+/desktop/data/
 /desktop/release/
 /datas/
 *.so

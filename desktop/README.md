@@ -14,7 +14,9 @@ wails3 build
 .\bin\xhs-desktop.exe
 ```
 
-生产版数据：`%APPDATA%\XHSSpiderDesktop\production`；开发版：`%APPDATA%\XHSSpiderDesktop\development`。`XHS_DESKTOP_DATA_DIR` 可指定隔离数据目录。下载目录是独立设置，默认不创建下载任务。
+开发版与正式版统一使用可执行文件旁的 `data` 目录，与启动工作目录无关。例如 `bin\xhs-desktop.exe` 对应 `bin\data\desktop.sqlite`、`bin\data\webview`。未设置下载位置时使用 `bin\data\downloads`；设置页可另选目录，也可点击“恢复默认”并保存。
+
+应用不读取 `XHS_DESKTOP_DATA_DIR`，不再使用 AppData/不同构建配置的独立目录。已有 AppData 数据不会自动搬迁或删除；需要保留时，关闭应用后将原数据目录内容搬到可执行文件旁的 data，再启动应用。
 
 下载并发设置指同时执行的笔记数；同一笔记的下载项始终串行。SQLite/DTO 时间戳为毫秒，应用枚举为 Go int8，前端直接使用生成枚举。SQL 全部在 `internal/storage/sql`。
 

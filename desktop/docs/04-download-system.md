@@ -5,7 +5,7 @@
 - `modules/downloads`：纯 Planner、不可变配置、单笔记任务/有序项、调度/状态/基础历史过滤、有界进度 Hub。`storage/download_repository.go` 和集中 downloads SQL 原子写任务/文件/历史/claims/journal；`adapters/mediahttp` 流式 HTTP 与受约束文件操作；app 管理启动、停止和数据目录独占锁。
 - 当前选 Best：主视频首个有地址流、每图首个有地址 variant（沿用 Pretty 的 WebDft 排序）、每张 LivePhoto 首个有地址动态流。静态/动态同图相邻，`representation.image_index` 是文件命名使用的 1 起始顺序。支持封面、文本、Pretty、raw、结果 manifest 开关；辅助项放在媒体之后。
 - 命名清理 Windows 非法字符/设备名并保留 ID/短身份摘要；按作者/笔记分目录。通过 Go 1.26 `os.Root` 约束文件操作，防止路径/链接逃出输出根。Windows Root.Rename 使用相对目录句柄的替换 API，下载前不删除/truncate 正式文件。
-- 配置支持 Overwrite（默认）/SkipExisting、DedupOff/SameOutput、强制忽略历史、严格 SHA-256、每地址额外重试 0～5/总预算 1～64（默认 2/12）、失败后继续/终止。本阶段固定连接 10s、响应头 15s、空闲读取 30s、每主机最多 4 连接，普通 CDN 使用独立标准 HTTP client，不修改 API 的 Chrome_152_PSK。
+- 配置支持 Overwrite（默认）/SkipExisting、DedupOff/SameOutput、强制忽略历史、严格 SHA-256、每地址额外重试 0～5/总预算 1～64（默认 2/12）、失败后继续/终止。全局下载位置未设置时使用可执行文件旁 `data/downloads`；设置页和单任务配置可覆盖，空任务目录由后端继承当前全局目录。保存“未设置”语义，不把派生默认位置作为绝对路径写入偏好，移动程序后默认位置随 data 移动。本阶段固定连接 10s、响应头 15s、空闲读取 30s、每主机最多 4 连接，普通 CDN 使用独立标准 HTTP client，不修改 API 的 Chrome_152_PSK。
 - 调度最多 32 个活跃笔记，设置默认 4，向下调整只停止新派发；等待队列在 DB，最多 1000 个排队任务。FIFO，一条笔记的多个 task 经 note_claim 串行；同一 task 逐项执行，路径 claim 和单任务 Running/Finalizing 部分唯一索引兜底。基础退避仍占当前笔记 worker，公平老化/退避让出配额/限速留在 P4。
 - 流式写入使用可复用 256 KiB buffer，校验长度、媒体魔数、SHA-256；拒绝 HTML/JSON。选中流主/备用 URL 精确去重并受尝试预算约束；请求和重定向不携带 Cookie。读写/响应体/Root/临时文件/计时器由 executor 就地释放。
 - 完整文件先关闭并 Sync，写 Finalizing journal，再替换、原子结算文件/笔记计数/历史和释放 claim。重启严格核对正式文件或临时文件摘要后补结算；无有效证据改 Interrupted 重新下载。已有成功项保留。暂停/取消等待 worker，未完成 part 清理，恢复从该项重新下载；尚无 Range/分段续传。DB 提交异常留下的 Finalizing 项要求重启核对后再恢复。

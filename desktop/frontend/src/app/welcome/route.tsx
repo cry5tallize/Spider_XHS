@@ -6,7 +6,7 @@ import { themeModeLabels } from '@/shared/contracts/labels';
 
 export function Component() {
   const navigate = useNavigate();
-  const { settings } = useBootstrap();
+  const { settings, default_download_directory } = useBootstrap();
   const { token } = theme.useToken();
   return <div className="page welcome-page">
     <div className="eyebrow">你的个人工作空间</div>
@@ -15,7 +15,7 @@ export function Component() {
     <Button type="primary" size="large" icon={<ArrowRightOutlined />} iconPlacement="end" onClick={() => void navigate('/parse')}>解析笔记</Button>
     <div className="preference-grid">
       {[
-        { icon: <FolderOpenOutlined />, title: '下载位置', value: settings.output_directory || '尚未设置', caption: '为笔记选择一个专属文件夹' },
+        { icon: <FolderOpenOutlined />, title: '下载位置', value: settings.output_directory || default_download_directory, caption: '为笔记选择一个专属文件夹' },
         { icon: <ThunderboltOutlined />, title: '笔记并发', value: `${settings.max_concurrent_notes} 条笔记`, caption: '每条笔记内部按顺序下载' },
         { icon: <BulbOutlined />, title: '外观', value: themeModeLabels[settings.theme_mode], caption: '为不同光线选择舒适的界面' },
       ].map(item => <Card key={item.title} className="preference-card">

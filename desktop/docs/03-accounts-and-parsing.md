@@ -9,7 +9,7 @@
 - 账号校验与解析共用版本化 client/lease；缓存命中仅查询元数据，不重复解密 Cookie。替换/禁用/删除立即取消旧 lease，引用归零才 Close。Runtime 取消并等待命令/worker，再关闭会话和数据库。
 - `ListNotes` 为时间+ID 游标，默认 50、最大 200；详情全部候选按需获取。`GetNote/GetSnapshot/ListSnapshots/GetRawSnapshot` 支持当前与旧快照；最近快照上限 200，最近作业上限 100，批量阶段再补分页。原文不混入普通 DTO。
 - 当前原始响应始终保留；访问 token/source 只保存在等待作业内存，不落盘链接、不日志输出。退出/重启将未完作业标 Interrupted，需重新输入链接，暂不自动恢复请求。P3 加入加密访问来源与持久化批量队列，P4 用于 URL 刷新。
-- 前端只在解析页存在活动作业时每秒查询状态，重新进入页面同步一次；笔记库进入时重新取当前投影。P2c 的 EVT-01 再统一事件订阅与下载实时进度。离线验证使用 `desktopcheck parse/inspect`；线上请求只由用户明确发起。
+- 前端只在解析页存在活动作业时每秒查询状态，重新进入页面同步一次；笔记库进入时重新取当前投影。P2c 的 EVT-01 已接入下载事件。离线验证使用 `desktopcheck parse/inspect`；线上请求只由用户明确发起。需要在应用中查看导入记录时，关闭应用后给 CLI 的 `-data-dir` 指定可执行文件旁的 data 目录。
 
 ## 多账号 Cookie
 

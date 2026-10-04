@@ -111,6 +111,7 @@ func (r *Runtime) Start(parent context.Context) error {
 		r.state = dto.StateFailed
 		return errors.Join(err, executor.Close(), r.notes.Close(), r.sessions.Close(), store.Close())
 	}
+	r.downloads.SetOutputDirectoryResolver(r.resolveOutputDirectory)
 	r.store, r.settings, r.state = store, service, dto.StateReady
 	return nil
 }
@@ -171,6 +172,30 @@ func (r *Runtime) GetGeneral(caller context.Context) (settings.General, error) {
 	return r.settings.Get(ctx)
 }
 
+func (r *Runtime) resolveOutputDirectory(ctx context.Context) (string, error) {
+	g, err := r.settings.Get(ctx)
+	if err != nil {
+		return "", err
+	}
+	if g.OutputDirectory != "" {
+		return g.OutputDirectory, nil
+	}
+	return r.paths.DownloadDirectory, nil
+}
+
+func (r *Runtime) GetDownloadDefaults(caller context.Context) (downloads.Config, error) {
+	ctx, done, err := r.beginCommand(caller)
+	if err != nil {
+		return downloads.Config{}, err
+	}
+	defer done()
+	directory, err := r.resolveOutputDirectory(ctx)
+	if err != nil {
+		return downloads.Config{}, err
+	}
+	return downloads.Defaults(directory), nil
+}
+
 func (r *Runtime) WithAccounts(caller context.Context, call func(context.Context, *accounts.Service) error) error {
 	ctx, done, err := r.beginCommand(caller)
 	if err != nil {
@@ -224,5 +249,5 @@ func (r *Runtime) Bootstrap(caller context.Context) (dto.Bootstrap, error) {
 		return dto.Bootstrap{}, err
 	}
 	return dto.Bootstrap{Name: Name, Version: Version, Profile: r.profile, State: dto.StateReady,
-		DataDirectory: r.paths.DataDirectory, SchemaVersion: r.store.SchemaVersion(), Settings: g}, nil
+		DataDirectory: r.paths.DataDirectory, DefaultDownloadDirectory: r.paths.DownloadDirectory, SchemaVersion: r.store.SchemaVersion(), Settings: g}, nil
 }

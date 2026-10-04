@@ -12,7 +12,7 @@ vi.mock('./api', () => ({ chooseOutputDirectory: vi.fn(), updateGeneral: vi.fn()
 
 const bootstrap: Bootstrap = {
   name: 'XHS Desktop', version: '0.1.0', profile: Profile.Development, state: RuntimeState.StateReady,
-  data_directory: 'D:\\data', schema_version: 1,
+  data_directory: 'D:\\data', default_download_directory: 'D:\\data\\downloads', schema_version: 1,
   settings: { schema_version: 1, theme_mode: ThemeMode.ThemeSystem, max_concurrent_notes: 4, output_directory: '', revision: 1, updated_at_ms: 1_791_024_000_987 },
 };
 
@@ -42,9 +42,20 @@ describe('settings commands', () => {
     vi.mocked(chooseOutputDirectory).mockResolvedValueOnce('D:\\Downloads').mockResolvedValueOnce('');
     renderSettings();
     fireEvent.click(screen.getByRole('button', { name: '选择下载目录' }));
-    await waitFor(() => expect(screen.getByPlaceholderText('例如 D:\\Downloads\\XHS')).toHaveValue('D:\\Downloads'));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '默认下载目录' })).toHaveValue('D:\\Downloads'));
     fireEvent.click(screen.getByRole('button', { name: '选择下载目录' }));
     await waitFor(() => expect(chooseOutputDirectory).toHaveBeenCalledTimes(2));
-    expect(screen.getByPlaceholderText('例如 D:\\Downloads\\XHS')).toHaveValue('D:\\Downloads');
+    expect(screen.getByRole('textbox', { name: '默认下载目录' })).toHaveValue('D:\\Downloads');
+  });
+  it('restores the executable data download default without saving an absolute override', async () => {
+    vi.mocked(updateGeneral).mockClear().mockResolvedValue({ ...bootstrap.settings, revision: 2 });
+    renderSettings();
+    const directory = screen.getByRole('textbox', { name: '默认下载目录' });
+    expect(directory).toHaveAttribute('placeholder', 'D:\\data\\downloads');
+    fireEvent.change(directory, { target: { value: 'D:\\Custom' } });
+    fireEvent.click(screen.getByRole('button', { name: '恢复默认' }));
+    expect(directory).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: '保存偏好' }));
+    await waitFor(() => expect(updateGeneral).toHaveBeenCalledWith({ theme_mode: ThemeMode.ThemeSystem, max_concurrent_notes: 4, output_directory: '', expected_revision: 1 }));
   });
 });

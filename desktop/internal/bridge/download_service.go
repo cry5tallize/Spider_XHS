@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads"
-	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/settings"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ func init() { application.RegisterEvent[downloads.EventBatch]("downloads:changed
 
 type DownloadBackend interface {
 	WithDownloads(context.Context, func(context.Context, *downloads.Service) error) error
-	GetGeneral(context.Context) (settings.General, error)
+	GetDownloadDefaults(context.Context) (downloads.Config, error)
 }
 type DownloadService struct {
 	backend       DownloadBackend
@@ -54,8 +53,7 @@ func withDownloads[T any](ctx context.Context, b DownloadBackend, call func(cont
 	return
 }
 func (s *DownloadService) GetDefaultConfig(ctx context.Context) (downloads.Config, error) {
-	g, err := s.backend.GetGeneral(ctx)
-	return downloads.Defaults(g.OutputDirectory), err
+	return s.backend.GetDownloadDefaults(ctx)
 }
 func (s *DownloadService) BuildPlan(ctx context.Context, i downloads.PlanInput) (downloads.Plan, error) {
 	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) (downloads.Plan, error) { return d.BuildPlan(ctx, i) })

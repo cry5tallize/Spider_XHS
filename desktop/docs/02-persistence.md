@@ -3,7 +3,7 @@
 ## 连接与迁移
 
 - 使用 `database/sql` + `_ "modernc.org/sqlite"`，不引入 ORM。modernc 版本实施时核对当前稳定版、Go 要求和 Windows 构建兼容，锁入 go.mod/go.sum。
-- 首发 Windows；数据库在 `os.UserConfigDir()` 下应用专属数据目录，开发用独立子目录。路径由 `platform/paths` 统一决定并回显设置页。
+- 首发 Windows；数据库固定在可执行文件旁 `data/desktop.sqlite`，开发/正式版采用相同布局，不依赖工作目录/AppData/环境变量。WebView 缓存在 `data/webview`；未设置下载位置时使用 `data/downloads`。路径由 `platform/paths` 统一决定并回显设置页。CLI/自动检查可显式使用隔离目录，应用入口不开放数据目录覆盖。
 - 一个数据库、一个应用实例。启用 Wails 单实例并验证第二实例不会在拿到实例控制权前打开 DB 或启动 worker；必要的数据目录锁归 app 生命周期所有。
 - 初始一个 writer `*sql.DB`（MaxOpenConns=1）和只读 reader pool（初始最多 4）；写事务经集中存储层串行进入。状态写入避免与同一 writer 的外层事务互相等待。
 - WAL、`foreign_keys=ON`、`busy_timeout=5000`；默认 `synchronous=FULL`，保证已确认关键事务的耐久性。通过 modernc 支持的 DSN `_pragma`/连接初始化给每条连接设置连接级 PRAGMA，不能只 Exec 一次便认为整个池生效。

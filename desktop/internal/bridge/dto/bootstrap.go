@@ -17,11 +17,12 @@ const (
 )
 
 type Bootstrap struct {
-	Name          string           `json:"name"`
-	Version       string           `json:"version"`
-	Profile       paths.Profile    `json:"profile"`
-	State         RuntimeState     `json:"state"`
-	DataDirectory string           `json:"data_directory"`
-	SchemaVersion int              `json:"schema_version"`
-	Settings      settings.General `json:"settings"`
+	Name                     string           `json:"name"`
+	Version                  string           `json:"version"`
+	Profile                  paths.Profile    `json:"profile"`
+	State                    RuntimeState     `json:"state"`
+	DataDirectory            string           `json:"data_directory"`
+	DefaultDownloadDirectory string           `json:"default_download_directory"`
+	SchemaVersion            int              `json:"schema_version"`
+	Settings                 settings.General `json:"settings"`
 }

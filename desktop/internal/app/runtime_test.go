@@ -3,12 +3,80 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/downloads"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/settings"
+	"github.com/cry5tallize/xhs_spider_desktop/internal/xhsapi"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/cry5tallize/xhs_spider_desktop/internal/platform/paths"
 )
+
+func TestRuntimeDefaultDownloadDirectoryAndReset(t *testing.T) {
+	ctx := context.Background()
+	data := t.TempDir()
+	r, err := NewRuntime(paths.Development, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err = r.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defaultDirectory := filepath.Join(data, "downloads")
+	boot, err := r.Bootstrap(ctx)
+	if err != nil || boot.DefaultDownloadDirectory != defaultDirectory {
+		t.Fatal("default not exposed by bootstrap", err)
+	}
+	config, err := r.GetDownloadDefaults(ctx)
+	if err != nil || config.Output.Directory != defaultDirectory {
+		t.Fatal("unset directory not resolved", err)
+	}
+	custom := filepath.Join(data, "custom-output")
+	input := settings.UpdateGeneral{ThemeMode: boot.Settings.ThemeMode, MaxConcurrentNotes: boot.Settings.MaxConcurrentNotes, OutputDirectory: custom, ExpectedRevision: boot.Settings.Revision}
+	saved, err := r.UpdateGeneral(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err = r.GetDownloadDefaults(ctx)
+	if err != nil || config.Output.Directory != custom {
+		t.Fatal("custom directory not used", err)
+	}
+	input.OutputDirectory = ""
+	input.ExpectedRevision = saved.Revision
+	if _, err = r.UpdateGeneral(ctx, input); err != nil {
+		t.Fatal(err)
+	}
+	var detail notes.Detail
+	err = r.WithNotes(ctx, func(ctx context.Context, n *notes.Service) error {
+		var e error
+		detail, e = n.ImportPayload(ctx, notes.Payload{Note: xhsapi.Note{ID: "aaaaaaaaaaaaaaaaaaaaaaaa", Title: "offline"}, Raw: []byte(`{}`)})
+		return e
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// An API caller omitting the directory receives the same fallback as the UI.
+	err = r.WithDownloads(ctx, func(ctx context.Context, d *downloads.Service) error {
+		p, e := d.BuildPlan(ctx, downloads.PlanInput{SnapshotID: detail.Snapshot.ID, Config: downloads.Defaults("")})
+		if e != nil {
+			return e
+		}
+		if p.Config.Output.Directory != defaultDirectory {
+			t.Fatal("empty task directory bypassed fallback")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := r.GetGeneral(ctx)
+	if err != nil || g.OutputDirectory != "" {
+		t.Fatal("derived default was persisted as a custom absolute path", err)
+	}
+}
 
 func TestRuntimeRepeatedStartCloseAndPersistedSettings(t *testing.T) {
 	directory := t.TempDir()

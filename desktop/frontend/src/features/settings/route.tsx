@@ -27,6 +27,7 @@ export function Component() {
     mutationFn: (input: UpdateGeneral) => updateGeneral(input),
     onSuccess: saved => {
       queryClient.setQueryData<Bootstrap>(bootstrapKey, old => old ? { ...old, settings: saved } : old);
+      void queryClient.invalidateQueries({ queryKey: ['download-defaults'] });
       clearPreview();
       setEditingRevision(saved.revision);
       void message.success('偏好已保存');
@@ -49,8 +50,12 @@ export function Component() {
         </Form.Item>
       </Card>
       <Card title="下载偏好" className="settings-card">
-        <Form.Item name="output_directory" label="默认下载目录" extra="完整的本地文件夹路径，具体任务可以另选位置。">
-          <Input placeholder="例如 D:\Downloads\XHS" autoComplete="off" suffix={<Button type="text" size="small" aria-label="选择下载目录" icon={<FolderOpenOutlined />} loading={chooseDirectory.isPending} onClick={() => chooseDirectory.mutate()} />} />
+        <Form.Item label="默认下载目录" extra={`留空使用 ${bootstrap.default_download_directory}；单条任务可以另选位置。`}>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item name="output_directory" noStyle><Input aria-label="默认下载目录" allowClear placeholder={bootstrap.default_download_directory} autoComplete="off" /></Form.Item>
+            <Button aria-label="选择下载目录" icon={<FolderOpenOutlined />} loading={chooseDirectory.isPending} onClick={() => chooseDirectory.mutate()}>选择</Button>
+            <Button onClick={() => form.setFieldValue('output_directory', '')}>恢复默认</Button>
+          </Space.Compact>
         </Form.Item>
         <Form.Item name="max_concurrent_notes" label="同时下载的笔记数" extra="每条笔记的下载项始终按顺序执行。" rules={[{ required: true, type: 'number', min: 1, max: 32 }]}>
           <InputNumber min={1} max={32} precision={0} suffix="条笔记" style={{ width: 200 }} />
@@ -62,7 +67,8 @@ export function Component() {
       <Space orientation="vertical" size={8}>
         <Typography.Text type="secondary">应用版本：{bootstrap.version}</Typography.Text>
         <Typography.Text copyable>{bootstrap.data_directory}</Typography.Text>
-        <Typography.Text type="secondary">该目录保存账号、配置及记录，下载文件保存在你选择的位置。</Typography.Text>
+        <Typography.Text type="secondary">账号、配置、记录和缓存统一保存在可执行文件旁的 data 目录。</Typography.Text>
+        <Typography.Text type="secondary">未设置下载位置时使用 {bootstrap.default_download_directory}。</Typography.Text>
       </Space>
     </Card>
   </div>;

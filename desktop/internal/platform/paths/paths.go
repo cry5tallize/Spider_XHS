@@ -15,8 +15,10 @@ const (
 )
 
 type Paths struct {
-	DataDirectory string
-	DatabasePath  string
+	DataDirectory     string
+	DatabasePath      string
+	DownloadDirectory string
+	WebviewDirectory  string
 }
 
 // Resolve is side-effect-free; resources are only created after single-instance selection.
@@ -26,19 +28,16 @@ func Resolve(profile Profile, override string) (Paths, error) {
 	}
 	directory := override
 	if directory == "" {
-		base, err := os.UserConfigDir()
+		executable, err := os.Executable()
 		if err != nil {
 			return Paths{}, err
 		}
-		name := "development"
-		if profile == Production {
-			name = "production"
-		}
-		directory = filepath.Join(base, "XHSSpiderDesktop", name)
+		directory = filepath.Join(filepath.Dir(executable), "data")
 	}
 	absolute, err := filepath.Abs(directory)
 	if err != nil {
 		return Paths{}, err
 	}
-	return Paths{absolute, filepath.Join(absolute, "desktop.sqlite")}, nil
+	return Paths{DataDirectory: absolute, DatabasePath: filepath.Join(absolute, "desktop.sqlite"),
+		DownloadDirectory: filepath.Join(absolute, "downloads"), WebviewDirectory: filepath.Join(absolute, "webview")}, nil
 }

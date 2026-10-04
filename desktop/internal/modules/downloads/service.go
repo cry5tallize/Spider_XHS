@@ -46,20 +46,26 @@ type activeTask struct {
 	checkpoint time.Time
 }
 type Service struct {
-	mu         sync.Mutex
-	repository Repository
-	executor   Executor
-	ctx        context.Context
-	cancel     context.CancelFunc
-	hub        *Hub
-	active     map[string]*activeTask
-	max        int
-	wake       chan struct{}
-	workers    sync.WaitGroup
-	dispatcher chan struct{}
-	closing    bool
-	once       sync.Once
-	closeErr   error
+	mu                     sync.Mutex
+	repository             Repository
+	executor               Executor
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	hub                    *Hub
+	active                 map[string]*activeTask
+	max                    int
+	wake                   chan struct{}
+	workers                sync.WaitGroup
+	dispatcher             chan struct{}
+	closing                bool
+	once                   sync.Once
+	closeErr               error
+	resolveOutputDirectory func(context.Context) (string, error)
+}
+
+// SetOutputDirectoryResolver is wired once during startup, before commands run.
+func (s *Service) SetOutputDirectoryResolver(resolve func(context.Context) (string, error)) {
+	s.resolveOutputDirectory = resolve
 }
 
 func NewService(parent context.Context, r Repository, e Executor, max int, emit func(EventBatch)) (*Service, error) {
@@ -107,6 +113,13 @@ func NewService(parent context.Context, r Repository, e Executor, max int, emit 
 	return s, nil
 }
 func (s *Service) BuildPlan(ctx context.Context, input PlanInput) (Plan, error) {
+	if input.Config.Output.Directory == "" && s.resolveOutputDirectory != nil {
+		directory, err := s.resolveOutputDirectory(ctx)
+		if err != nil {
+			return Plan{}, err
+		}
+		input.Config.Output.Directory = directory
+	}
 	d, err := s.repository.GetSnapshot(ctx, input.SnapshotID)
 	if err != nil {
 		return Plan{}, err
@@ -133,6 +146,11 @@ func (s *Service) CreateTask(ctx context.Context, input CreateTask) (Task, error
 	}
 	old, err := s.repository.FindDownloadRequest(ctx, input.RequestID)
 	if err == nil {
+		// An omitted directory reuses the original task's resolved location,
+		// including when global settings changed since the first submission.
+		if input.Config.Output.Directory == "" {
+			input.Config.Output.Directory = old.Config.Output.Directory
+		}
 		oldConfig, _ := json.Marshal(old.Config)
 		newConfig, _ := json.Marshal(input.Config)
 		if old.SnapshotID != input.SnapshotID || string(oldConfig) != string(newConfig) {
