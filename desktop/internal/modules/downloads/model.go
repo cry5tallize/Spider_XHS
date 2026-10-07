@@ -79,6 +79,7 @@ const (
 	LiveBoth    LiveMode = 1
 	LiveStatic  LiveMode = 2
 	LiveMotion  LiveMode = 3
+	LiveExclude LiveMode = 4
 )
 
 type HDRMode int8
@@ -96,6 +97,9 @@ type VideoSelection struct {
 	Containers   []string  `json:"containers"`
 	MinLongEdge  int64     `json:"min_long_edge"`
 	MaxLongEdge  int64     `json:"max_long_edge"`
+	MaxShortEdge int64     `json:"max_short_edge"`
+	Width        int64     `json:"width"`
+	Height       int64     `json:"height"`
 	MinFPS       float64   `json:"min_fps"`
 	MaxFPS       float64   `json:"max_fps"`
 	HDR          HDRMode   `json:"hdr"`
@@ -110,9 +114,10 @@ type ImageSelection struct {
 	LastIndex    int       `json:"last_index"`
 }
 type Selection struct {
-	Video     VideoSelection `json:"video"`
-	Images    ImageSelection `json:"images"`
-	LivePhoto LiveMode       `json:"live_photo"`
+	Video     VideoSelection  `json:"video"`
+	Motion    *VideoSelection `json:"motion,omitempty"`
+	Images    ImageSelection  `json:"images"`
+	LivePhoto LiveMode        `json:"live_photo"`
 }
 type Naming struct {
 	DirectoryTemplate string `json:"directory_template"`
@@ -161,10 +166,11 @@ const (
 )
 
 var (
-	ErrNotFound = errors.New("下载任务或文件不存在")
-	ErrConflict = errors.New("下载任务状态已变更")
-	ErrBusy     = errors.New("下载目标正在使用")
-	ErrClosing  = errors.New("下载服务正在关闭")
+	ErrNotFound  = errors.New("下载任务或文件不存在")
+	ErrConflict  = errors.New("下载任务状态已变更")
+	ErrBusy      = errors.New("下载目标正在使用")
+	ErrClosing   = errors.New("下载服务正在关闭")
+	ErrNoContent = errors.New("没有可下载内容，请修改媒体配置")
 )
 
 type Failure struct {
@@ -177,14 +183,15 @@ type Failure struct {
 func (f *Failure) Error() string { return f.Message }
 
 type MediaConfig struct {
-	Video           bool `json:"video"`
-	Images          bool `json:"images"`
-	VideoCover      bool `json:"video_cover"`
-	LivePhotoMotion bool `json:"live_photo_motion"`
-	Pretty          bool `json:"pretty"`
-	Text            bool `json:"text"`
-	Raw             bool `json:"raw"`
-	Manifest        bool `json:"manifest"`
+	Video           bool  `json:"video"`
+	Images          bool  `json:"images"`
+	VideoCover      bool  `json:"video_cover"`
+	LivePhotoMotion bool  `json:"live_photo_motion"`
+	LivePhotoStatic *bool `json:"live_photo_static,omitempty"`
+	Pretty          bool  `json:"pretty"`
+	Text            bool  `json:"text"`
+	Raw             bool  `json:"raw"`
+	Manifest        bool  `json:"manifest"`
 }
 type OutputConfig struct {
 	Directory      string         `json:"directory"`
@@ -243,6 +250,7 @@ type Candidate struct {
 	Image          *xhsapi.ImageVariant `json:"image,omitempty"`
 }
 type CandidateCatalog struct {
+	NoteType    string      `json:"note_type"`
 	SnapshotID  string      `json:"snapshot_id"`
 	Candidates  []Candidate `json:"candidates"`
 	CodecGroups []string    `json:"codec_groups"`

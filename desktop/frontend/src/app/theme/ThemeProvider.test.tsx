@@ -8,27 +8,55 @@ import { readThemePreference } from './preferences';
 
 function Probe() {
   const { dark, preview, clearPreview } = useTheme();
-  return <><span data-testid="theme">{dark ? 'dark' : 'light'}</span>
-    <button onClick={() => preview(ThemeMode.ThemeDark)}>preview</button>
-    <button onClick={clearPreview}>reset</button></>;
+  return (
+    <>
+      <span data-testid="theme">{dark ? 'dark' : 'light'}</span>
+      <button onClick={() => preview(ThemeMode.ThemeDark)}>preview</button>
+      <button onClick={clearPreview}>reset</button>
+    </>
+  );
 }
 
 function mediaController() {
   let dark = false;
   const listeners = new Set<() => void>();
-  vi.spyOn(window, 'matchMedia').mockImplementation(media => ({
-    get matches() { return media.includes('prefers-color-scheme') && dark; }, media, onchange: null,
-    addEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => { listeners.add(listener as () => void); },
-    removeEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => { listeners.delete(listener as () => void); },
-    addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: () => true,
+  vi.spyOn(window, 'matchMedia').mockImplementation((media) => ({
+    get matches() {
+      return media.includes('prefers-color-scheme') && dark;
+    },
+    media,
+    onchange: null,
+    addEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => {
+      listeners.add(listener as () => void);
+    },
+    removeEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => {
+      listeners.delete(listener as () => void);
+    },
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: () => true,
   }));
-  return { listeners, setDark(value: boolean) { act(() => { dark = value; listeners.forEach(fn => fn()); }); } };
+  return {
+    listeners,
+    setDark(value: boolean) {
+      act(() => {
+        dark = value;
+        listeners.forEach((fn) => fn());
+      });
+    },
+  };
 }
 
 describe('theme lifetime', () => {
   it('follows the system and cleans up under StrictMode', () => {
     const media = mediaController();
-    const view = render(<StrictMode><ThemeProvider mode={ThemeMode.ThemeSystem}><Probe /></ThemeProvider></StrictMode>);
+    const view = render(
+      <StrictMode>
+        <ThemeProvider mode={ThemeMode.ThemeSystem}>
+          <Probe />
+        </ThemeProvider>
+      </StrictMode>,
+    );
     expect(media.listeners.size).toBe(1);
     media.setDark(true);
     expect(screen.getByTestId('theme')).toHaveTextContent('dark');
@@ -38,17 +66,29 @@ describe('theme lifetime', () => {
   });
   it('does not let system changes override a manual mode', () => {
     const media = mediaController();
-    const view = render(<ThemeProvider mode={ThemeMode.ThemeLight}><Probe /></ThemeProvider>);
+    const view = render(
+      <ThemeProvider mode={ThemeMode.ThemeLight}>
+        <Probe />
+      </ThemeProvider>,
+    );
     media.setDark(true);
     expect(media.listeners.size).toBe(0);
     expect(screen.getByTestId('theme')).toHaveTextContent('light');
-    view.rerender(<ThemeProvider mode={ThemeMode.ThemeSystem}><Probe /></ThemeProvider>);
+    view.rerender(
+      <ThemeProvider mode={ThemeMode.ThemeSystem}>
+        <Probe />
+      </ThemeProvider>,
+    );
     expect(screen.getByTestId('theme')).toHaveTextContent('dark');
     expect(media.listeners.size).toBe(1);
   });
   it('previews without overwriting the persistent startup mirror', () => {
     mediaController();
-    render(<ThemeProvider mode={ThemeMode.ThemeLight}><Probe /></ThemeProvider>);
+    render(
+      <ThemeProvider mode={ThemeMode.ThemeLight}>
+        <Probe />
+      </ThemeProvider>,
+    );
     fireEvent.click(screen.getByText('preview'));
     expect(screen.getByTestId('theme')).toHaveTextContent('dark');
     expect(readThemePreference()).toBe(ThemeMode.ThemeLight);
@@ -58,7 +98,9 @@ describe('theme lifetime', () => {
   it('ignores corrupt or unavailable optional local storage', () => {
     localStorage.setItem('xhs-desktop.theme', 'invalid');
     expect(readThemePreference()).toBe(ThemeMode.ThemeSystem);
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
     expect(readThemePreference()).toBe(ThemeMode.ThemeSystem);
   });
 });

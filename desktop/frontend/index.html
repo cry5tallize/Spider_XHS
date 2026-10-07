@@ -1,10 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <style>html,body{margin:0;background:#f6f7fb}html[data-theme=dark],html[data-theme=dark] body{background:#101216}</style>
-    <script>try{const hint=localStorage.getItem('xhs-desktop.startup-color-scheme');const dark=hint==='dark'||hint!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.dataset.theme=dark?'dark':'light';document.documentElement.style.colorScheme=dark?'dark':'light'}catch{}</script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #f6f7fb;
+      }
+      html[data-theme='dark'],
+      html[data-theme='dark'] body {
+        background: #101216;
+      }
+    </style>
+    <script>
+      try {
+        const hint = localStorage.getItem('xhs-desktop.startup-color-scheme');
+        const dark =
+          hint === 'dark' ||
+          (hint !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      } catch {}
+    </script>
     <title>XHS Desktop</title>
   </head>
   <body>

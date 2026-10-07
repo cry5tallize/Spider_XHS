@@ -81,7 +81,7 @@ func Run(assets fs.FS) (err error) {
 		Windows: application.WindowsOptions{WebviewUserDataPath: runtime.paths.WebviewDirectory},
 	})
 	mainWindow.Store(wails.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name: "main", Title: Name, Width: 1200, Height: 800, MinWidth: 960, MinHeight: 640,
+		Name: "main", Title: Name, Width: 1440, Height: 900, MinWidth: 1280, MinHeight: 720,
 		Frameless: true, URL: "/", BackgroundColour: application.NewRGB(246, 247, 251),
 	}))
 	return wails.Run()

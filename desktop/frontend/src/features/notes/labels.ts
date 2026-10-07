@@ -9,9 +9,12 @@ export const parseStates: Record<ParseState, { label: string; color?: string }> 
   [ParseState.ParseCanceled]: { label: '已取消' },
   [ParseState.ParseInterrupted]: { label: '已中断', color: 'warning' },
 };
-export const isActiveParse = (state: ParseState) => state === ParseState.ParseQueued || state === ParseState.ParseRunning;
-export const noteKindLabel = (kind: NoteKind) => kind === NoteKind.KindVideo ? '视频' : kind === NoteKind.KindImage ? '图文' : '未知类型';
-export const formatTime = (value?: number | null) => value ? new Date(value).toLocaleString('zh-CN') : '—';
+export const isActiveParse = (state: ParseState) =>
+  state === ParseState.ParseQueued || state === ParseState.ParseRunning;
+export const noteKindLabel = (kind: NoteKind) =>
+  kind === NoteKind.KindVideo ? '视频' : kind === NoteKind.KindImage ? '图文' : '未知类型';
+export const formatTime = (value?: number | null) =>
+  value ? new Date(value).toLocaleString('zh-CN') : '—';
 export const formatBytes = (bytes?: number | null) => {
   if (bytes == null) return '—';
   if (bytes < 1024) return `${bytes} B`;

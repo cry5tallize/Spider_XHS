@@ -161,6 +161,14 @@ type Item struct {
 	CredentialVersion int64                   `json:"credential_version"`
 	State             ItemState               `json:"state"`
 	SnapshotID        string                  `json:"snapshot_id"`
+	AuthorID          string                  `json:"author_id"`
+	AuthorName        string                  `json:"author_name"`
+	AuthorAvatar      string                  `json:"author_avatar"`
+	CoverURL          string                  `json:"cover_url"`
+	ImageCount        int                     `json:"image_count"`
+	VideoStreamCount  int                     `json:"video_stream_count"`
+	HasLivePhoto      bool                    `json:"has_live_photo"`
+	LivePhotoCount    int                     `json:"live_photo_count"`
 	Failure           *notes.Failure          `json:"failure"`
 	SkipReason        string                  `json:"skip_reason"`
 	OriginCount       int                     `json:"origin_count"`

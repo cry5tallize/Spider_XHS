@@ -35,6 +35,7 @@ export interface Candidate {
 }
 
 export interface CandidateCatalog {
+    "note_type": string;
     "snapshot_id": string;
     "candidates": Candidate[] | null;
     "codec_groups": string[] | null;
@@ -241,6 +242,7 @@ export enum LiveMode {
     LiveBoth = 1,
     LiveStatic = 2,
     LiveMotion = 3,
+    LiveExclude = 4,
 };
 
 export interface LivePair {
@@ -254,6 +256,7 @@ export interface MediaConfig {
     "images": boolean;
     "video_cover": boolean;
     "live_photo_motion": boolean;
+    "live_photo_static"?: boolean | null;
     "pretty": boolean;
     "text": boolean;
     "raw": boolean;
@@ -313,6 +316,17 @@ export interface PlanInput {
     "config": Config;
 }
 
+export interface PlanPreview {
+    "snapshot_id": string;
+    "note_id": string;
+    "title": string;
+    "directory": string;
+    "files": PreviewFile[] | null;
+    "known_bytes": number;
+    "unknown_sizes": number;
+    "warnings": string[] | null;
+}
+
 export interface PlannedItem {
     "sequence": number;
     "kind": MediaKind;
@@ -330,6 +344,17 @@ export interface Preset {
     "name": string;
     "config": Config;
     "updated_at_ms": number;
+}
+
+/**
+ * PreviewFile contains no signed URLs or inline file bodies.
+ */
+export interface PreviewFile {
+    "sequence": number;
+    "kind": MediaKind;
+    "representation": Representation;
+    "bytes": number | null;
+    "relative_path": string;
 }
 
 export interface Representation {
@@ -366,6 +391,7 @@ export interface SavePreset {
 
 export interface Selection {
     "video": VideoSelection;
+    "motion"?: VideoSelection | null;
     "images": ImageSelection;
     "live_photo": LiveMode;
 }
@@ -453,6 +479,9 @@ export interface VideoSelection {
     "containers": string[] | null;
     "min_long_edge": number;
     "max_long_edge": number;
+    "max_short_edge": number;
+    "width": number;
+    "height": number;
     "min_fps": number;
     "max_fps": number;
     "hdr": HDRMode;

@@ -1,6 +1,7 @@
 package downloads
 
 import (
+	"errors"
 	"fmt"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/modules/notes"
 	"github.com/cry5tallize/xhs_spider_desktop/internal/xhsapi"
@@ -118,5 +119,94 @@ func TestNamingTemplatesRetainIDsAfterLongVariableExpansion(t *testing.T) {
 		if !filepath.IsLocal(item.RelativePath) {
 			t.Fatal("template escaped root")
 		}
+	}
+}
+
+func TestMainVideoResolutionDoesNotFilterIndependentMotion(t *testing.T) {
+	d := syntheticMedia()
+	d.Note.Video.Streams[0].Codec = "h264"
+	d.Note.Video.Streams[0].Width, d.Note.Video.Streams[0].Height = intRef(1080), intRef(1920)
+	for i := range d.Note.Images {
+		for j := range d.Note.Images[i].MotionStreams {
+			d.Note.Images[i].MotionStreams[j].Codec = "h265"
+		}
+	}
+	c := Defaults(t.TempDir())
+	c.Media.Pretty, c.Media.Manifest, c.Media.VideoCover = false, false, true
+	c.Selection.Video.CodecGroups = []string{"h264"}
+	c.Selection.Video.Width, c.Selection.Video.Height = 1080, 1920
+	c.Selection.Motion = &VideoSelection{Mode: VideoBest, AllowUnknown: true}
+	p, err := BuildPlan(d, c, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	video, motion := 0, 0
+	for _, item := range p.Items {
+		if item.Kind == MediaVideo {
+			video++
+			if item.Representation.Width == nil || *item.Representation.Width != 1080 {
+				t.Fatal("wrong main resolution")
+			}
+		}
+		if item.Kind == MediaMotion {
+			motion++
+		}
+	}
+	if video != 1 || motion != 2 || len(p.LivePairs) != 2 {
+		t.Fatalf("video=%d motion=%d pairs=%d", video, motion, len(p.LivePairs))
+	}
+	c.Selection.Motion = nil
+	legacy, err := BuildPlan(d, c, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range legacy.Items {
+		if item.Kind == MediaMotion {
+			t.Fatal("old shared-selection semantics changed")
+		}
+	}
+}
+
+func TestExcludeLivePhotoKeepsOrdinaryImagesAndIndependentStaticSelection(t *testing.T) {
+	d := syntheticMedia()
+	d.Note.Type = "normal"
+	d.Note.Video = nil
+	d.Note.Images = append(d.Note.Images, xhsapi.NoteImageInfo{Index: 2, Variants: []xhsapi.ImageVariant{{Scene: "WebDft", URL: "https://cdn.invalid/ordinary.jpg"}}})
+	c := Defaults(t.TempDir())
+	c.Media.Pretty, c.Media.Manifest = false, false
+	c.Selection.LivePhoto = LiveExclude
+	p, err := BuildPlan(d, c, nil)
+	if err != nil || len(p.Items) != 1 || p.Items[0].Kind != MediaImage || len(p.LivePairs) != 0 {
+		t.Fatalf("exclude result: %+v, %v", p, err)
+	}
+	c.Selection.LivePhoto = LiveStatic
+	c.Media.Images = false
+	keepStatic := true
+	c.Media.LivePhotoStatic = &keepStatic
+	p, err = BuildPlan(d, c, nil)
+	if err != nil || len(p.Items) != 2 || len(p.LivePairs) != 2 {
+		t.Fatalf("independent static result: %+v, %v", p, err)
+	}
+	for _, item := range p.Items {
+		if item.Kind != MediaImage {
+			t.Fatal("static-only exported motion")
+		}
+	}
+}
+
+func TestResolutionCapUsesShortEdgeForPortraitAndRejectsUnknown(t *testing.T) {
+	d := syntheticMedia()
+	d.Note.Video.Streams[0].Width, d.Note.Video.Streams[0].Height = intRef(1080), intRef(1920)
+	c := Defaults(t.TempDir())
+	c.Media.Pretty, c.Media.Manifest, c.Media.VideoCover, c.Media.LivePhotoMotion = false, false, false, false
+	c.Selection.Video.MaxShortEdge = 1080
+	p, err := BuildPlan(d, c, nil)
+	if err != nil || len(p.Items) != 1 || p.Items[0].Representation.Height == nil || *p.Items[0].Representation.Height != 1920 {
+		t.Fatalf("portrait cap: %+v, %v", p, err)
+	}
+	d.Note.Video.Streams[0].Width, d.Note.Video.Streams[0].Height = nil, nil
+	p, err = BuildPlan(d, c, nil)
+	if !errors.Is(err, ErrNoContent) || len(p.Items) != 0 {
+		t.Fatalf("unknown size passed strict cap: %+v, %v", p, err)
 	}
 }

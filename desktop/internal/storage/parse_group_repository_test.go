@@ -106,6 +106,33 @@ func TestBatchParseDeduplicatesOriginsAndRetriesOnlyFailures(t *testing.T) {
 		t.Fatal("retry repeated successful note or lost failed item")
 	}
 }
+
+func TestParseResultAuthorAndCoverStayBoundToOriginalSnapshot(t *testing.T) {
+	store, f, service := groupSetup(t)
+	ctx := context.Background()
+	original := f.Payloads[0]
+	job, err := service.Start(ctx, parsing.Start{RequestID: "snapshot-author", Mode: parsing.ModeNotes, AccountID: "test", Text: original.Note.ID, Config: parsing.Defaults()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitCollection(t, service, job.ID, parsing.Succeeded)
+	page, err := service.Items(ctx, parsing.ItemQuery{JobID: job.ID, Limit: 50})
+	if err != nil || len(page.Items) != 1 {
+		t.Fatalf("items: %+v, %v", page, err)
+	}
+	old := page.Items[0]
+	if old.AuthorID != original.Note.User.ID || old.AuthorName != original.Note.User.Nickname || old.AuthorAvatar != original.Note.User.AvatarURL || old.ImageCount != len(original.Note.Images) {
+		t.Fatalf("missing author summary: %+v", old)
+	}
+	changed := original
+	changed.Note.User.Nickname = "new nickname"
+	changed.Note.User.AvatarURL = "https://cdn.invalid/new-avatar.png"
+	saveDownloadNote(t, store, changed)
+	page, err = service.Items(ctx, parsing.ItemQuery{JobID: job.ID, Limit: 50})
+	if err != nil || page.Items[0].AuthorName != old.AuthorName || page.Items[0].AuthorAvatar != old.AuthorAvatar || page.Items[0].CoverURL != old.CoverURL || page.Items[0].SnapshotID != old.SnapshotID {
+		t.Fatalf("old result changed to newest author: %+v, %v", page, err)
+	}
+}
 func TestUserParseCommitsPagesAndUsesOwnNoteTokens(t *testing.T) {
 	_, f, s := groupSetup(t)
 	ctx := context.Background()

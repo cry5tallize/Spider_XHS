@@ -33,6 +33,7 @@ type Account struct {
 	Name              string `json:"name"`
 	UserID            string `json:"user_id"`
 	Nickname          string `json:"nickname"`
+	AvatarURL         string `json:"avatar_url"`
 	Status            Status `json:"status"`
 	Enabled           bool   `json:"enabled"`
 	IsDefault         bool   `json:"is_default"`
@@ -64,7 +65,7 @@ type ReplaceCookie struct {
 	Cookie          string `json:"cookie"`
 	ExpectedVersion int64  `json:"expected_version"`
 }
-type Identity struct{ UserID, Nickname string }
+type Identity struct{ UserID, Nickname, AvatarURL string }
 type Validation struct {
 	Status      Status
 	Identity    Identity

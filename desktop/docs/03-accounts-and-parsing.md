@@ -25,11 +25,13 @@
 
 账号支持新增、重命名、更新 Cookie、验证、禁用、设为默认、删除。用户粘贴 Cookie 文本，后端完成语法/必要字段校验，再用 `GetMe` 验证登录用户；本地保存和远端验证是两步，验证失败也可保存为待修复账号。
 
+点击校验后保存 `GetMe` 返回的用户 ID、昵称与 `images` 头像地址，账号页优先展示真实昵称和头像，备注名称仍保留。头像地址持久化在 `avatar_url`；旧数据库通过 0007 迁移增加该字段，再次校验后补齐。校验失败保留上次成功获取的身份信息，更换 Cookie 则清空旧身份，避免新凭据显示旧用户；头像缺失或加载失败使用首字占位。
+
 应用封闭状态建议显式 int8：Unknown=0、Unchecked=1、Valid=2、Expired=3、Restricted=4、Disabled=5、Error=6。网络暂时错误不应判成 Cookie 过期；保留 last error、上次验证时间和当前校验中的瞬时标记。
 
 ### 凭据与 client 管理
 
-- 普通账号 DTO 只含名称、用户 ID、状态、是否默认、Cookie 是否存在、版本、校验时间；禁止账号列表返回 Cookie 原文。
+- 普通账号 DTO 包含名称、用户 ID、昵称、头像地址、状态、是否默认、Cookie 是否存在、版本、校验时间；禁止账号列表返回 Cookie 原文。
 - 首发使用 Windows DPAPI 保护 secret_blob；封装 `SecretStore`，其他平台以后补平台适配。不能将内置固定密钥当加密，不能因保护失败而无提示落盘明文。
 - Cookie 只在 accounts 管理器获取 lease 时解保护。导入/更新会增加 `credential_version`，client 缓存键为 account_id + version + network profile。
 - 每个账号独立 `xhsapi.Client`/session。`Acquire` 返回带 Release 的 lease，运行中 lease 归任务释放；新版本替换旧缓存，旧 client 等引用归零后 Close。

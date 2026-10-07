@@ -16,6 +16,7 @@
 | [06-frontend-and-ux.md](06-frontend-and-ux.md) | React Router 懒加载、Ant Design、页面、主题、性能 |
 | [07-roadmap-and-progress.md](07-roadmap-and-progress.md) | 分阶段任务、依赖、状态、变更记录 |
 | [08-validation.md](08-validation.md) | 自动验证、故障模拟、性能与人工验收 |
+| [09-parse-workspace-redesign.md](09-parse-workspace-redesign.md) | 解析页改版规划、参数交互与 TitleBar 双击修复计划 |
 
 既有算法与接口记录继续保留：[MIGRATION.md](../MIGRATION.md)、[XHSAPI_PLAN.md](../XHSAPI_PLAN.md)、[NOTE_RESPONSE_PLAN.md](../NOTE_RESPONSE_PLAN.md)、[PROGRESS.md](../PROGRESS.md)。新的应用开发进度集中更新到本文档组，不另建重复台账。
 

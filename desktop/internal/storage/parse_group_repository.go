@@ -51,10 +51,14 @@ func scanParseSource(row scanner) (parsing.Source, error) {
 	}
 	return s, err
 }
-func scanBatchItem(row scanner) (parsing.Item, error) {
+func scanBatchItem(row scanner, preview bool) (parsing.Item, error) {
 	var i parsing.Item
 	var failure sql.NullString
-	err := row.Scan(&i.ID, &i.JobID, &i.NoteID, &i.Title, &i.RawKind, &i.AccountID, &i.CredentialVersion, &i.State, &i.SnapshotID, &failure, &i.SkipReason, &i.OriginCount, &i.Ordinal, &i.PublishedAtMS, &i.RefBlob, &i.Provider)
+	fields := []any{&i.ID, &i.JobID, &i.NoteID, &i.Title, &i.RawKind, &i.AccountID, &i.CredentialVersion, &i.State, &i.SnapshotID, &failure, &i.SkipReason, &i.OriginCount, &i.Ordinal, &i.PublishedAtMS, &i.RefBlob, &i.Provider}
+	if preview {
+		fields = append(fields, &i.AuthorID, &i.AuthorName, &i.AuthorAvatar, &i.CoverURL, &i.ImageCount, &i.VideoStreamCount, &i.HasLivePhoto, &i.LivePhotoCount)
+	}
+	err := row.Scan(fields...)
 	if err == nil && failure.Valid {
 		err = json.Unmarshal([]byte(failure.String), &i.Failure)
 	}
@@ -277,7 +281,7 @@ func (s *Store) PendingParseItems(ctx context.Context, id string, limit int) ([]
 	defer rows.Close()
 	out := []parsing.Item{}
 	for rows.Next() {
-		v, e := scanBatchItem(rows)
+		v, e := scanBatchItem(rows, false)
 		if e != nil {
 			return nil, e
 		}
@@ -476,7 +480,7 @@ func (s *Store) ListParseItems(ctx context.Context, q parsing.ItemQuery) (parsin
 	defer rows.Close()
 	p := parsing.ItemPage{Items: []parsing.Item{}}
 	for rows.Next() {
-		i, e := scanBatchItem(rows)
+		i, e := scanBatchItem(rows, true)
 		if e != nil {
 			return p, e
 		}

@@ -54,6 +54,14 @@ export interface Item {
     "credential_version": number;
     "state": ItemState;
     "snapshot_id": string;
+    "author_id": string;
+    "author_name": string;
+    "author_avatar": string;
+    "cover_url": string;
+    "image_count": number;
+    "video_stream_count": number;
+    "has_live_photo": boolean;
+    "live_photo_count": number;
     "failure": notes$0.Failure | null;
     "skip_reason": string;
     "origin_count": number;

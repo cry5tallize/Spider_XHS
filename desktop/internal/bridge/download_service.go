@@ -69,6 +69,11 @@ func (s *DownloadService) CreateTasks(ctx context.Context, i downloads.CreateBat
 func (s *DownloadService) BuildPlans(ctx context.Context, i downloads.BatchPlanInput) ([]downloads.Plan, error) {
 	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) ([]downloads.Plan, error) { return d.BuildPlans(ctx, i) })
 }
+func (s *DownloadService) PreviewPlans(ctx context.Context, i downloads.BatchPlanInput) ([]downloads.PlanPreview, error) {
+	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) ([]downloads.PlanPreview, error) {
+		return d.PreviewPlans(ctx, i)
+	})
+}
 func (s *DownloadService) ListPresets(ctx context.Context) ([]downloads.Preset, error) {
 	return withDownloads(ctx, s.backend, func(ctx context.Context, d *downloads.Service) ([]downloads.Preset, error) { return d.ListPresets(ctx) })
 }

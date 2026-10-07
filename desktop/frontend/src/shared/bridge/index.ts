@@ -1,4 +1,4 @@
-import { Window, Events, type CancellablePromise } from '@wailsio/runtime';
+import { Window, Events, Browser, type CancellablePromise } from '@wailsio/runtime';
 import * as AppService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/appservice';
 import * as SettingsService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/settingsservice';
 import * as FileService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/fileservice';
@@ -7,7 +7,15 @@ import * as NoteService from '../../../bindings/github.com/cry5tallize/xhs_spide
 import * as DownloadService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/downloadservice';
 import * as ParsingService from '../../../bindings/github.com/cry5tallize/xhs_spider_desktop/internal/bridge/parsingservice';
 import type { StartCollection, CollectionItemQuery } from '../contracts';
-import type { DownloadConfig, CreateDownloadTask, DownloadListInput, DownloadEventBatch, DownloadChangesInput, CreateDownloadBatch, SaveDownloadPreset } from '../contracts';
+import type {
+  DownloadConfig,
+  CreateDownloadTask,
+  DownloadListInput,
+  DownloadEventBatch,
+  DownloadChangesInput,
+  CreateDownloadBatch,
+  SaveDownloadPreset,
+} from '../contracts';
 import type { StartParse, NoteListInput } from '../contracts';
 import type { UpdateGeneral, CreateAccount, UpdateAccount, ReplaceCookie } from '../contracts';
 
@@ -15,61 +23,112 @@ async function withSignal<T>(call: CancellablePromise<T>, signal?: AbortSignal):
   const cancel = () => call.cancel();
   if (signal?.aborted) cancel();
   else signal?.addEventListener('abort', cancel, { once: true });
-  try { return await call; }
-  finally { signal?.removeEventListener('abort', cancel); }
+  try {
+    return await call;
+  } finally {
+    signal?.removeEventListener('abort', cancel);
+  }
 }
 
 export const getBootstrap = (signal?: AbortSignal) => withSignal(AppService.GetBootstrap(), signal);
-export const updateGeneral = (input: UpdateGeneral) => withSignal(SettingsService.UpdateGeneral(input));
-export const setWindowAppearance = (dark: boolean) => withSignal(AppService.SetWindowAppearance(dark));
+export const updateGeneral = (input: UpdateGeneral) =>
+  withSignal(SettingsService.UpdateGeneral(input));
+export const setWindowAppearance = (dark: boolean) =>
+  withSignal(AppService.SetWindowAppearance(dark));
 export const chooseOutputDirectory = () => withSignal(FileService.ChooseOutputDirectory());
 export const minimizeWindow = () => Window.Minimise();
 export const maximizeWindow = () => Window.ToggleMaximise();
+export const isWindowMaximised = () => Window.IsMaximised();
+export const subscribeWindowState = (listener: () => void) => {
+  const off = [
+    Events.Types.Common.WindowMaximise,
+    Events.Types.Common.WindowUnMaximise,
+    Events.Types.Common.WindowRestore,
+  ].map((event) => Events.On(event, listener));
+  return () => off.forEach((unsubscribe) => unsubscribe());
+};
+export const openAuthorProfile = (id: string) => {
+  if (!/^[a-f\d]{24}$/i.test(id)) return Promise.reject(new Error('作者主页 ID 无效'));
+  return Browser.OpenURL(`https://www.xiaohongshu.com/user/profile/${id}`);
+};
 export const closeWindow = () => Window.Close();
 export const listAccounts = (signal?: AbortSignal) => withSignal(AccountService.List(), signal);
 export const createAccount = (input: CreateAccount) => withSignal(AccountService.Create(input));
 export const updateAccount = (input: UpdateAccount) => withSignal(AccountService.Update(input));
-export const replaceAccountCookie = (input: ReplaceCookie) => withSignal(AccountService.ReplaceCookie(input));
+export const replaceAccountCookie = (input: ReplaceCookie) =>
+  withSignal(AccountService.ReplaceCookie(input));
 export const setDefaultAccount = (id: string) => withSignal(AccountService.SetDefault(id));
 export const validateAccount = (id: string) => withSignal(AccountService.Validate(id));
 export const deleteAccount = (id: string) => withSignal(AccountService.Delete(id));
 export const startParse = (input: StartParse) => withSignal(NoteService.StartParse(input));
-export const listParseJobs = (signal?: AbortSignal) => withSignal(NoteService.ListParseJobs(), signal);
-export const getParseJob = (id: string, signal?: AbortSignal) => withSignal(NoteService.GetParseJob(id), signal);
+export const listParseJobs = (signal?: AbortSignal) =>
+  withSignal(NoteService.ListParseJobs(), signal);
+export const getParseJob = (id: string, signal?: AbortSignal) =>
+  withSignal(NoteService.GetParseJob(id), signal);
 export const cancelParse = (id: string) => withSignal(NoteService.CancelParse(id));
-export const listNotes = (input: NoteListInput, signal?: AbortSignal) => withSignal(NoteService.ListNotes(input), signal);
-export const getNote = (id: string, signal?: AbortSignal) => withSignal(NoteService.GetNote(id), signal);
-export const getSnapshot = (id: string, signal?: AbortSignal) => withSignal(NoteService.GetSnapshot(id), signal);
-export const listSnapshots = (id: string, signal?: AbortSignal) => withSignal(NoteService.ListSnapshots(id), signal);
-export const getRawSnapshot = (id: string, signal?: AbortSignal) => withSignal(NoteService.GetRawSnapshot(id), signal);
-export const getDownloadDefaults = (signal?: AbortSignal) => withSignal(DownloadService.GetDefaultConfig(), signal);
-export const buildDownloadPlan = (snapshot_id: string, config: DownloadConfig) => withSignal(DownloadService.BuildPlan({ snapshot_id, config }));
-export const buildDownloadPlans = (snapshot_ids: string[], config: DownloadConfig) => withSignal(DownloadService.BuildPlans({ snapshot_ids, config }));
-export const getMediaCandidates = (id: string, signal?: AbortSignal) => withSignal(DownloadService.GetCandidates(id), signal);
-export const createDownloadBatch = (input: CreateDownloadBatch) => withSignal(DownloadService.CreateTasks(input));
-export const listDownloadPresets = (signal?: AbortSignal) => withSignal(DownloadService.ListPresets(), signal);
-export const saveDownloadPreset = (input: SaveDownloadPreset) => withSignal(DownloadService.SavePreset(input));
+export const listNotes = (input: NoteListInput, signal?: AbortSignal) =>
+  withSignal(NoteService.ListNotes(input), signal);
+export const getNote = (id: string, signal?: AbortSignal) =>
+  withSignal(NoteService.GetNote(id), signal);
+export const getSnapshot = (id: string, signal?: AbortSignal) =>
+  withSignal(NoteService.GetSnapshot(id), signal);
+export const listSnapshots = (id: string, signal?: AbortSignal) =>
+  withSignal(NoteService.ListSnapshots(id), signal);
+export const getRawSnapshot = (id: string, signal?: AbortSignal) =>
+  withSignal(NoteService.GetRawSnapshot(id), signal);
+export const getDownloadDefaults = (signal?: AbortSignal) =>
+  withSignal(DownloadService.GetDefaultConfig(), signal);
+export const buildDownloadPlan = (snapshot_id: string, config: DownloadConfig) =>
+  withSignal(DownloadService.BuildPlan({ snapshot_id, config }));
+export const buildDownloadPlans = (snapshot_ids: string[], config: DownloadConfig) =>
+  withSignal(DownloadService.BuildPlans({ snapshot_ids, config }));
+export const previewDownloadPlans = (
+  snapshot_ids: string[],
+  config: DownloadConfig,
+  signal?: AbortSignal,
+) => withSignal(DownloadService.PreviewPlans({ snapshot_ids, config }), signal);
+export const getMediaCandidates = (id: string, signal?: AbortSignal) =>
+  withSignal(DownloadService.GetCandidates(id), signal);
+export const createDownloadBatch = (input: CreateDownloadBatch) =>
+  withSignal(DownloadService.CreateTasks(input));
+export const listDownloadPresets = (signal?: AbortSignal) =>
+  withSignal(DownloadService.ListPresets(), signal);
+export const saveDownloadPreset = (input: SaveDownloadPreset) =>
+  withSignal(DownloadService.SavePreset(input));
 export const deleteDownloadPreset = (id: string) => withSignal(DownloadService.DeletePreset(id));
-export const createDownloadTask = (input: CreateDownloadTask) => withSignal(DownloadService.CreateTask(input));
-export const listDownloadTasks = (input: DownloadListInput, signal?: AbortSignal) => withSignal(DownloadService.ListTasks(input), signal);
-export const queryDownloadHistory = (input: DownloadListInput, signal?: AbortSignal) => withSignal(DownloadService.QueryHistory(input), signal);
-export const getDownloadTask = (id: string, signal?: AbortSignal) => withSignal(DownloadService.GetTask(id), signal);
-export const listDownloadItems = (id: string, signal?: AbortSignal) => withSignal(DownloadService.ListTaskItems(id), signal);
+export const createDownloadTask = (input: CreateDownloadTask) =>
+  withSignal(DownloadService.CreateTask(input));
+export const listDownloadTasks = (input: DownloadListInput, signal?: AbortSignal) =>
+  withSignal(DownloadService.ListTasks(input), signal);
+export const queryDownloadHistory = (input: DownloadListInput, signal?: AbortSignal) =>
+  withSignal(DownloadService.QueryHistory(input), signal);
+export const getDownloadTask = (id: string, signal?: AbortSignal) =>
+  withSignal(DownloadService.GetTask(id), signal);
+export const listDownloadItems = (id: string, signal?: AbortSignal) =>
+  withSignal(DownloadService.ListTaskItems(id), signal);
 export const pauseDownload = (id: string) => withSignal(DownloadService.Pause(id));
 export const resumeDownload = (id: string) => withSignal(DownloadService.Resume(id));
 export const cancelDownload = (id: string) => withSignal(DownloadService.Cancel(id));
 export const retryDownload = (id: string) => withSignal(DownloadService.RetryFailed(id));
 export const openDownloadDirectory = (id: string) => withSignal(DownloadService.OpenDirectory(id));
-export const getDownloadActive = (signal?: AbortSignal) => withSignal(DownloadService.GetActiveSnapshots(), signal);
-export const getDownloadChanges = (input: DownloadChangesInput, signal?: AbortSignal) => withSignal(DownloadService.GetChangesSince(input), signal);
-export const subscribeDownloads = (listener: (batch: DownloadEventBatch) => void) => Events.On('downloads:changed', event => listener(event.data));
-export const getCollectionDefaults = (signal?: AbortSignal) => withSignal(ParsingService.GetDefaultConfig(), signal);
+export const getDownloadActive = (signal?: AbortSignal) =>
+  withSignal(DownloadService.GetActiveSnapshots(), signal);
+export const getDownloadChanges = (input: DownloadChangesInput, signal?: AbortSignal) =>
+  withSignal(DownloadService.GetChangesSince(input), signal);
+export const subscribeDownloads = (listener: (batch: DownloadEventBatch) => void) =>
+  Events.On('downloads:changed', (event) => listener(event.data));
+export const getCollectionDefaults = (signal?: AbortSignal) =>
+  withSignal(ParsingService.GetDefaultConfig(), signal);
 export const startCollection = (input: StartCollection) => withSignal(ParsingService.Start(input));
 export const listCollections = (signal?: AbortSignal) => withSignal(ParsingService.List(), signal);
-export const getCollection = (id: string, signal?: AbortSignal) => withSignal(ParsingService.Get(id), signal);
-export const getCollectionSources = (id: string, signal?: AbortSignal) => withSignal(ParsingService.Sources(id), signal);
-export const getCollectionItems = (input: CollectionItemQuery, signal?: AbortSignal) => withSignal(ParsingService.Items(input), signal);
-export const getCollectionOrigins = (id: string, signal?: AbortSignal) => withSignal(ParsingService.Origins(id), signal);
+export const getCollection = (id: string, signal?: AbortSignal) =>
+  withSignal(ParsingService.Get(id), signal);
+export const getCollectionSources = (id: string, signal?: AbortSignal) =>
+  withSignal(ParsingService.Sources(id), signal);
+export const getCollectionItems = (input: CollectionItemQuery, signal?: AbortSignal) =>
+  withSignal(ParsingService.Items(input), signal);
+export const getCollectionOrigins = (id: string, signal?: AbortSignal) =>
+  withSignal(ParsingService.Origins(id), signal);
 export const pauseCollection = (id: string) => withSignal(ParsingService.Pause(id));
 export const cancelCollection = (id: string) => withSignal(ParsingService.Cancel(id));
 export const resumeCollection = (id: string) => withSignal(ParsingService.Resume(id));

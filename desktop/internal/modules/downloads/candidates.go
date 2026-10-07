@@ -13,7 +13,7 @@ import (
 // Catalog retains every normalized representation. IDs depend on the snapshot
 // and complete candidate content, not an array position or a closed codec list.
 func Catalog(d notes.Detail) CandidateCatalog {
-	out := CandidateCatalog{SnapshotID: d.Snapshot.ID, Candidates: []Candidate{}, CodecGroups: []string{}, Scenes: []string{}, Formats: []string{}}
+	out := CandidateCatalog{SnapshotID: d.Snapshot.ID, NoteType: d.Note.Type, Candidates: []Candidate{}, CodecGroups: []string{}, Scenes: []string{}, Formats: []string{}}
 	groups, scenes, formats := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	add := func(c Candidate) {
 		if len(c.URLs) == 0 {
@@ -111,6 +111,12 @@ func sceneMatches(c Candidate, allowed []string) bool {
 }
 func videoMatches(c Candidate, s VideoSelection) bool {
 	r := c.Representation
+	if s.Width > 0 && (r.Width == nil || r.Height == nil || *r.Width != s.Width || *r.Height != s.Height) {
+		return false
+	}
+	if s.MaxShortEdge > 0 && (r.Width == nil || r.Height == nil || min(*r.Width, *r.Height) > s.MaxShortEdge) {
+		return false
+	}
 	if !equalAny(r.CodecGroup, s.CodecGroups) && !equalAny(r.Codec, s.CodecGroups) {
 		return false
 	}
@@ -180,6 +186,14 @@ func choose(catalog CandidateCatalog, c Config) ([]Candidate, []string, error) {
 			return nil, nil, fmt.Errorf("图片候选不属于当前快照，请重新选择")
 		}
 	}
+	if c.Selection.Motion != nil && c.Selection.Motion.Mode == VideoCustom {
+		for _, id := range c.Selection.Motion.CandidateIDs {
+			candidate, ok := byID[id]
+			if !ok || candidate.Kind != MediaMotion {
+				return nil, nil, fmt.Errorf("实况候选不属于当前快照，请重新选择")
+			}
+		}
+	}
 	videoIDs, imageIDs := map[string]bool{}, map[string]bool{}
 	for _, id := range c.Selection.Video.CandidateIDs {
 		videoIDs[id] = true
@@ -191,6 +205,9 @@ func choose(catalog CandidateCatalog, c Config) ([]Candidate, []string, error) {
 	warnings := []string{}
 	seen := map[string]bool{}
 	for _, candidate := range catalog.Candidates {
+		if candidate.LivePhoto && c.Selection.LivePhoto == LiveExclude {
+			continue
+		}
 		r := candidate.Representation
 		index := 0
 		if r.ImageIndex != nil {
@@ -222,10 +239,24 @@ func choose(catalog CandidateCatalog, c Config) ([]Candidate, []string, error) {
 			if candidate.Kind == MediaMotion && c.Selection.LivePhoto == LiveStatic {
 				continue
 			}
-			if !videoMatches(candidate, c.Selection.Video) {
+			selection := c.Selection.Video
+			mode := videoMode
+			ids := videoIDs
+			if candidate.Kind == MediaMotion && c.Selection.Motion != nil {
+				selection = *c.Selection.Motion
+				mode = selection.Mode
+				if mode == VideoDefault {
+					mode = VideoBest
+				}
+				ids = map[string]bool{}
+				for _, id := range selection.CandidateIDs {
+					ids[id] = true
+				}
+			}
+			if !videoMatches(candidate, selection) {
 				continue
 			}
-			switch videoMode {
+			switch mode {
 			case VideoBest:
 				if seen[scope] {
 					continue
@@ -240,7 +271,7 @@ func choose(catalog CandidateCatalog, c Config) ([]Candidate, []string, error) {
 					continue
 				}
 			case VideoCustom:
-				if !videoIDs[candidate.ID] {
+				if !ids[candidate.ID] {
 					continue
 				}
 			}

@@ -1,2 +1,26 @@
-export { getDownloadDefaults, buildDownloadPlan, createDownloadTask, listDownloadTasks, queryDownloadHistory, getDownloadTask, listDownloadItems, pauseDownload, resumeDownload, cancelDownload, retryDownload, openDownloadDirectory, getDownloadActive, getDownloadChanges, subscribeDownloads } from '@/shared/bridge';
-export { buildDownloadPlans, getMediaCandidates, createDownloadBatch, listDownloadPresets, saveDownloadPreset, deleteDownloadPreset } from '@/shared/bridge';
+export {
+  getDownloadDefaults,
+  buildDownloadPlan,
+  createDownloadTask,
+  listDownloadTasks,
+  queryDownloadHistory,
+  getDownloadTask,
+  listDownloadItems,
+  pauseDownload,
+  resumeDownload,
+  cancelDownload,
+  retryDownload,
+  openDownloadDirectory,
+  getDownloadActive,
+  getDownloadChanges,
+  subscribeDownloads,
+} from '@/shared/bridge';
+export {
+  buildDownloadPlans,
+  previewDownloadPlans,
+  getMediaCandidates,
+  createDownloadBatch,
+  listDownloadPresets,
+  saveDownloadPreset,
+  deleteDownloadPreset,
+} from '@/shared/bridge';

@@ -73,6 +73,10 @@ export function Pause(id: string): $CancellablePromise<downloads$0.Task> {
     return $Call.ByID(838565016, id);
 }
 
+export function PreviewPlans(i: downloads$0.BatchPlanInput): $CancellablePromise<downloads$0.PlanPreview[] | null> {
+    return $Call.ByID(3535149310, i);
+}
+
 export function QueryHistory(i: downloads$0.ListInput): $CancellablePromise<downloads$0.Page> {
     return $Call.ByID(1209233090, i);
 }

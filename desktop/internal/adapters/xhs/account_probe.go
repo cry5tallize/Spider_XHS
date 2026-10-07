@@ -46,11 +46,12 @@ func (p AccountProbe) CheckAccount(ctx context.Context, id string) (accounts.Ide
 		return accounts.Identity{}, accounts.Error, lease.Version, errors.New("账号校验失败，请检查网络或更新 Cookie")
 	}
 	var data struct {
-		UserID   string `json:"user_id"`
-		Nickname string `json:"nickname"`
+		UserID    string `json:"user_id"`
+		Nickname  string `json:"nickname"`
+		AvatarURL string `json:"images"`
 	}
 	if err = response.DecodeData(&data); err != nil {
 		return accounts.Identity{}, accounts.Error, lease.Version, errors.New("账号响应无法解析")
 	}
-	return accounts.Identity{UserID: data.UserID, Nickname: data.Nickname}, accounts.Valid, lease.Version, nil
+	return accounts.Identity{UserID: data.UserID, Nickname: data.Nickname, AvatarURL: data.AvatarURL}, accounts.Valid, lease.Version, nil
 }

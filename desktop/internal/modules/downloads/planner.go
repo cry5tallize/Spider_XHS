@@ -33,7 +33,7 @@ func (c Config) Validate() error {
 		return errors.New("下载尝试次数无效")
 	}
 	v, i := c.Selection.Video, c.Selection.Images
-	if v.Mode < VideoDefault || v.Mode > VideoCustom || i.Mode < ImageDefault || i.Mode > ImageCustom || c.Selection.LivePhoto < LiveDefault || c.Selection.LivePhoto > LiveMotion || v.HDR < HDRAny || v.HDR > HDRExclude {
+	if v.Mode < VideoDefault || v.Mode > VideoCustom || i.Mode < ImageDefault || i.Mode > ImageCustom || c.Selection.LivePhoto < LiveDefault || c.Selection.LivePhoto > LiveExclude || v.HDR < HDRAny || v.HDR > HDRExclude {
 		return errors.New("媒体选择模式无效")
 	}
 	if v.MinLongEdge < 0 || v.MaxLongEdge < 0 || (v.MaxLongEdge > 0 && v.MinLongEdge > v.MaxLongEdge) || v.MinFPS < 0 || v.MaxFPS < 0 || (v.MaxFPS > 0 && v.MinFPS > v.MaxFPS) || math.IsNaN(v.MinFPS) || math.IsNaN(v.MaxFPS) || math.IsInf(v.MinFPS, 0) || math.IsInf(v.MaxFPS, 0) {
@@ -44,6 +44,17 @@ func (c Config) Validate() error {
 	}
 	if v.Mode == VideoCustom && len(v.CandidateIDs) == 0 {
 		return errors.New("自定义视频模式需要选择候选")
+	}
+	if v.MaxShortEdge < 0 || v.Width < 0 || v.Height < 0 || (v.Width == 0) != (v.Height == 0) {
+		return errors.New("视频分辨率筛选无效")
+	}
+	if c.Selection.Motion != nil {
+		motionConfig := c
+		motionConfig.Selection.Video = *c.Selection.Motion
+		motionConfig.Selection.Motion = nil
+		if err := motionConfig.Validate(); err != nil {
+			return fmt.Errorf("实况动态配置：%w", err)
+		}
 	}
 	if i.Mode == ImageCustom && len(i.CandidateIDs) == 0 {
 		return errors.New("自定义图片模式需要选择候选")
@@ -195,7 +206,11 @@ func BuildPlan(detail notes.Detail, c Config, raw []byte) (Plan, error) {
 		if r.ImageIndex != nil {
 			index = *r.ImageIndex
 		}
-		if candidate.Kind == MediaVideo && !c.Media.Video || candidate.Kind == MediaMotion && !c.Media.LivePhotoMotion || candidate.Kind == MediaImage && ((isVideo && !c.Media.VideoCover) || (!isVideo && !c.Media.Images)) {
+		keepImage := (isVideo && c.Media.VideoCover) || (!isVideo && c.Media.Images)
+		if candidate.LivePhoto && c.Media.LivePhotoStatic != nil {
+			keepImage = *c.Media.LivePhotoStatic
+		}
+		if candidate.Kind == MediaVideo && !c.Media.Video || candidate.Kind == MediaMotion && !c.Media.LivePhotoMotion || candidate.Kind == MediaImage && !keepImage {
 			continue
 		}
 		key := urlAssets[candidate.URLs[0]]
@@ -264,7 +279,7 @@ func BuildPlan(detail notes.Detail, c Config, raw []byte) (Plan, error) {
 		add(MediaManifest, Representation{}, nil, nil, "manifest", nil)
 	}
 	if len(p.Items) == 0 {
-		return p, errors.New("没有可下载内容，请修改媒体配置")
+		return p, ErrNoContent
 	}
 	canonical, _ := json.Marshal(p)
 	p.Hash = digest(canonical)

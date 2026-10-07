@@ -9,6 +9,7 @@ export interface Account {
     "name": string;
     "user_id": string;
     "nickname": string;
+    "avatar_url": string;
     "status": Status;
     "enabled": boolean;
     "is_default": boolean;

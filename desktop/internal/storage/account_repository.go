@@ -12,7 +12,7 @@ type scanner interface{ Scan(...any) error }
 
 func scanAccount(row scanner) (accounts.Account, error) {
 	var a accounts.Account
-	err := row.Scan(&a.ID, &a.Name, &a.UserID, &a.Nickname, &a.Status, &a.Enabled, &a.IsDefault, &a.HasCookie, &a.CredentialVersion, &a.ValidatedAtMS, &a.LastError, &a.CreatedAtMS, &a.UpdatedAtMS)
+	err := row.Scan(&a.ID, &a.Name, &a.UserID, &a.Nickname, &a.AvatarURL, &a.Status, &a.Enabled, &a.IsDefault, &a.HasCookie, &a.CredentialVersion, &a.ValidatedAtMS, &a.LastError, &a.CreatedAtMS, &a.UpdatedAtMS)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = accounts.ErrNotFound
 	}
@@ -107,6 +107,6 @@ func (s *Store) DeleteAccount(ctx context.Context, id string, at int64) error {
 }
 
 func (s *Store) SaveAccountValidation(ctx context.Context, id string, version int64, validation accounts.Validation) error {
-	r, err := s.writer.ExecContext(ctx, query("accounts/validation"), validation.Status, validation.Identity.UserID, validation.Identity.Nickname, validation.Error, validation.CheckedAtMS, validation.CheckedAtMS, id, version)
+	r, err := s.writer.ExecContext(ctx, query("accounts/validation"), validation.Status, validation.Identity.UserID, validation.Identity.Nickname, validation.Identity.AvatarURL, validation.Error, validation.CheckedAtMS, id, version)
 	return accountResult(r, err, accounts.ErrChanged)
 }
