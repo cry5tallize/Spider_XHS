@@ -3,13 +3,13 @@ module github.com/cry5tallize/xhs_spider_desktop
 go 1.26.8
 
 require (
-	github.com/andybalholm/brotli v1.2.0
+	github.com/andybalholm/brotli v1.2.6
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/joho/godotenv v1.5.1
-	github.com/klauspost/compress v1.18.3
-	github.com/wailsapp/wails/v3 v3.0.0-beta.27
-	golang.org/x/net v0.56.0
+	github.com/klauspost/compress v1.20.1
+	github.com/wailsapp/wails/v3 v3.0.0-beta.28
+	golang.org/x/net v0.59.0
 	golang.org/x/sys v0.48.0
 	modernc.org/sqlite v1.60.1
 )
@@ -33,8 +33,8 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect

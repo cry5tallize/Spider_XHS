@@ -19,7 +19,7 @@
   "dependencies": {
     "@ant-design/icons": "6.3.4",
     "@tanstack/react-query": "5.104.0",
-    "@wailsio/runtime": "3.0.0-beta.26",
+    "@wailsio/runtime": "3.0.0-beta.28",
     "antd": "6.6.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
